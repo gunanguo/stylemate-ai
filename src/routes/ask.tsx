@@ -12,10 +12,10 @@ import type { Garment } from "@/lib/closet/types";
 
 export const Route = createFileRoute("/ask")({ component: AskPage });
 
-const VERDICT_STYLE = {
-  buy: "bg-success-soft text-success",
-  skip: "bg-accent text-accent-foreground",
-  maybe: "bg-secondary text-secondary-foreground",
+const VERDICT_LABEL = {
+  buy: "建议买",
+  skip: "建议跳过",
+  maybe: "先观望",
 } as const;
 
 function AskPage() {
@@ -57,12 +57,12 @@ function AskPage() {
 
   return (
     <div>
-      <PageHeader eyebrow="买之前" title="问一问衣橱" />
-      <p className="px-5 pt-2 text-sm leading-relaxed text-muted-foreground">
+      <PageHeader title="问一问" />
+      <p className="px-6 pt-4 text-sm leading-relaxed text-muted-foreground">
         看到想买的衣服，先让它和你已经有的 {owned} 件比一比。能配出几套、是不是已经有类似的，再决定下单。
       </p>
 
-      <section className="mx-5 mt-5 rounded-3xl border border-border bg-card p-4 shadow-soft">
+      <section className="mt-8 px-6">
         <label className="block text-xs font-medium text-muted-foreground">
           商品链接或描述
           <textarea
@@ -105,7 +105,7 @@ function AskPage() {
           type="button"
           disabled={busy}
           onClick={() => void submit()}
-          className="mt-4 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="mt-6 min-h-12 w-full bg-ink text-sm text-ink-foreground disabled:opacity-60"
         >
           {busy ? "正在对照衣橱…" : "问问衣橱"}
         </button>
@@ -119,13 +119,9 @@ function AskPage() {
 function Result({ advice, garments }: { advice: BuyAdvice; garments: Garment[] }) {
   const byId = new Map(garments.map((item) => [item.id, item]));
   return (
-    <section className="mx-5 mt-5 mb-4 rounded-3xl border border-border bg-card p-4">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-semibold text-primary">{advice.headline}</h2>
-        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${VERDICT_STYLE[advice.verdict]}`}>
-          {advice.verdict === "buy" ? "建议买" : advice.verdict === "skip" ? "建议跳过" : "先观望"}
-        </span>
-      </div>
+    <section className="mx-6 mt-8 mb-4 border-t border-border pt-6">
+      <h2 className="text-[17px] font-medium">{advice.headline}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{VERDICT_LABEL[advice.verdict]}</p>
       <p className="mt-3 text-sm">
         大约能多出 <span className="font-semibold">{advice.outfitCount}</span> 套穿法
         {advice.similar.length > 0 ? `，衣橱里已有 ${advice.similar.length} 件相近的` : "，衣橱里没有太像的"}。

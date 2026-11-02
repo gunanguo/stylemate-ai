@@ -4,8 +4,8 @@ import type { ReactNode } from "react";
 export function BrandMark({ tagline = false, className = "" }: { tagline?: boolean; className?: string }) {
   return (
     <div className={className}>
-      <p className="text-3xl font-semibold tracking-tight italic">
-        StyleMate <span className="text-primary">AI</span>
+      <p className="text-[30px] leading-tight font-light tracking-tight">
+        StyleMate <span className="text-accent">AI</span>
       </p>
       {tagline ? <p className="mt-3 text-sm text-muted-foreground">懂你衣橱的穿搭助理</p> : null}
     </div>
@@ -28,9 +28,9 @@ export function AuthScreen({
   switchText: string;
 }) {
   return (
-    <div className="flex min-h-dvh flex-col bg-[#f7f3ee] px-6 pt-16 pb-10">
+    <div className="flex min-h-dvh flex-col bg-background px-6 pt-16 pb-10">
       <BrandMark tagline />
-      <h1 className="mt-10 text-2xl font-semibold">{title}</h1>
+      <h1 className="display mt-10">{title}</h1>
       <p className="mt-2 text-sm text-muted-foreground">{lede}</p>
       <div className="mt-6">{children}</div>
       {error ? (
@@ -39,7 +39,7 @@ export function AuthScreen({
         </p>
       ) : null}
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        <Link to={switchHref} className="font-semibold text-primary">
+        <Link to={switchHref} className="text-foreground underline underline-offset-4">
           {switchText}
         </Link>
       </p>
@@ -66,4 +66,4 @@ export function AuthField({
 }
 
 export const authInputClass =
-  "mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none";
+  "mt-1.5 w-full border-b border-border bg-transparent px-0 py-3 text-base text-foreground outline-none";

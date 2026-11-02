@@ -26,7 +26,7 @@ function LoginPage() {
       return;
     }
     if (intent?.kind === "wear" || intent?.kind === "calendar") {
-      await navigate({ to: "/calendar" });
+      await navigate({ to: "/looks", search: { tab: "calendar" } });
       return;
     }
     if (intent?.kind === "profile") {
@@ -97,7 +97,7 @@ function LoginPage() {
         <button
           type="submit"
           disabled={busy}
-          className="mt-8 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+          className="mt-8 min-h-12 w-full bg-ink text-sm text-ink-foreground disabled:opacity-60"
         >
           {busy ? "请稍候" : "登录"}
         </button>

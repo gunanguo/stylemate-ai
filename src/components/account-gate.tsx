@@ -37,14 +37,13 @@ export function AccountGate({ children }: { children: ReactNode }) {
       {children}
       <ResumeIntent />
       {open ? (
-        <div className="fixed inset-0 z-50 mx-auto flex w-full max-w-md items-end bg-ink/40">
+        <div className="fixed inset-0 z-[70] mx-auto flex w-full max-w-md items-end bg-ink/40">
           <div
             role="dialog"
             aria-labelledby="account-gate-title"
-            className="w-full rounded-t-3xl bg-background px-5 pt-4 pb-10"
+            className="w-full bg-background px-6 pt-6 pb-10"
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-            <h2 id="account-gate-title" className="text-2xl font-semibold text-primary">
+            <h2 id="account-gate-title" className="text-[17px] font-medium">
               登录后，衣橱就是你的了
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
@@ -56,15 +55,11 @@ export function AccountGate({ children }: { children: ReactNode }) {
                 setOpen(false);
                 void navigate({ to: "/login" });
               }}
-              className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground"
+              className="mt-6 min-h-12 w-full bg-ink text-sm text-ink-foreground"
             >
               登录 / 注册
             </button>
-            <button
-              type="button"
-              onClick={dismiss}
-              className="mt-2 min-h-12 w-full rounded-2xl bg-secondary text-sm font-semibold"
-            >
+            <button type="button" onClick={dismiss} className="mt-4 w-full text-sm text-muted-foreground">
               先随便看看
             </button>
           </div>
@@ -95,13 +90,13 @@ function ResumeIntent() {
       return;
     }
     if (intent.kind === "calendar" || intent.kind === "profile") {
-      void navigate({ to: intent.kind === "calendar" ? "/calendar" : "/profile" });
+      void navigate({ to: intent.kind === "calendar" ? "/looks" : "/profile", search: intent.kind === "calendar" ? { tab: "calendar" } : {} });
       return;
     }
     if (intent.kind === "wear" && state.outfits.some((item) => item.id === intent.outfitId)) {
       state.wear(intent.date, intent.outfitId);
       toast("这天的穿搭已安排");
-      void navigate({ to: "/calendar" });
+      void navigate({ to: "/looks", search: { tab: "calendar" } });
       return;
     }
     if (intent.kind === "save" && state.outfits.some((item) => item.id === intent.outfitId)) {

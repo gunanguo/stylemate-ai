@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, Shirt, Sparkles, Sun, User } from "lucide-react";
+import { LayoutGrid, Shirt, Sun, User } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { AccountGate } from "@/components/account-gate";
@@ -8,11 +8,15 @@ import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/cn";
 
 const TABS = [
-  { to: "/", label: "今日", icon: Sun },
-  { to: "/wardrobe", label: "衣柜", icon: Shirt },
-  { to: "/style", label: "风格", icon: Sparkles },
-  { to: "/calendar", label: "日历", icon: CalendarDays },
-  { to: "/profile", label: "我的", icon: User },
+  { to: "/", label: "今日", icon: Sun, match: (path: string) => path === "/" },
+  { to: "/wardrobe", label: "衣橱", icon: Shirt, match: (path: string) => path.startsWith("/wardrobe") },
+  {
+    to: "/looks",
+    label: "搭配",
+    icon: LayoutGrid,
+    match: (path: string) => path.startsWith("/looks") || path === "/style" || path === "/calendar",
+  },
+  { to: "/profile", label: "我的", icon: User, match: (path: string) => path.startsWith("/profile") },
 ] as const;
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -23,7 +27,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const authScreen = pathname === "/login" || pathname === "/register";
 
   return (
-    <div className="mx-auto min-h-dvh w-full max-w-md overflow-x-hidden bg-background text-foreground shadow-soft">
+    <div className="mx-auto min-h-dvh w-full max-w-md overflow-x-hidden bg-background text-foreground">
       <main className={authScreen ? "" : "pb-28"}>
         <ClosetSync />
         <AccountGate>{children}</AccountGate>
@@ -31,11 +35,11 @@ export function Shell({ children }: { children: ReactNode }) {
       {authScreen ? null : (
         <nav
           aria-label="主导航"
-          className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t border-border bg-card/95 pb-safe backdrop-blur-xl"
+          className="fixed inset-x-0 bottom-0 z-40 mx-auto w-full max-w-md border-t border-border bg-background/80 pb-safe backdrop-blur-xl"
         >
-          <ul className="flex items-stretch justify-between px-1 pt-2">
+          <ul className="flex items-stretch justify-between px-2 pt-2">
             {TABS.map((tab) => (
-              <Tab key={tab.to} {...tab} />
+              <Tab key={tab.to} {...tab} active={tab.match(pathname)} />
             ))}
           </ul>
         </nav>
@@ -46,9 +50,9 @@ export function Shell({ children }: { children: ReactNode }) {
         mobileOffset={authScreen ? "1rem" : "calc(5.75rem + env(safe-area-inset-bottom))"}
         toastOptions={{
           style: {
-            background: "var(--color-ink)",
-            color: "var(--color-ink-foreground)",
-            border: "none",
+            background: "#faf8f5",
+            color: "#1c1b19",
+            border: "1px solid #e9e5df",
             fontFamily: "inherit",
           },
         }}
@@ -68,31 +72,35 @@ function ClosetSync() {
   return null;
 }
 
-function Tab({ to, label, icon: Icon }: (typeof TABS)[number]) {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  const active = to === "/" ? pathname === "/" : pathname.startsWith(to);
+function Tab({
+  to,
+  label,
+  icon: Icon,
+  active,
+}: (typeof TABS)[number] & { active: boolean }) {
   return (
     <li className="flex-1">
       <Link
         to={to}
+        search={to === "/looks" ? { tab: "generate" } : undefined}
         className={cn(
-          "flex min-h-12 flex-col items-center justify-center gap-1 text-muted-foreground",
-          active && "text-primary",
+          "flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground",
+          active && "text-foreground",
         )}
       >
-        <Icon className="h-5 w-5" strokeWidth={active ? 2 : 1.5} />
-        <span className={cn("text-xs", active ? "font-semibold" : "font-medium")}>{label}</span>
-        <span className={cn("h-1 w-1 rounded-full", active ? "bg-primary" : "bg-transparent")} />
+        <Icon className="h-5 w-5" strokeWidth={1.25} />
+        <span>{label}</span>
+        <span className={cn("h-[3px] w-[3px] rounded-full", active ? "bg-accent" : "bg-transparent")} />
       </Link>
     </li>
   );
 }
 
-export function PageHeader({ eyebrow, title }: { eyebrow: string; title: string }) {
+export function PageHeader({ title, aside }: { title: string; aside?: ReactNode }) {
   return (
-    <header className="animate-rise px-5 pt-12 pb-2">
-      <p className="text-xs font-medium text-muted-foreground">{eyebrow}</p>
-      <h1 className="mt-1 text-3xl leading-tight font-semibold">{title}</h1>
+    <header className="flex items-center justify-between gap-4 px-6 pt-12">
+      <h1 className="display">{title}</h1>
+      {aside}
     </header>
   );
 }

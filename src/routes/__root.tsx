@@ -8,7 +8,7 @@ const APP_NAME = "StyleMate AI — 你的衣橱造型师";
 const SPLASH_KEY = "stylemate-splash";
 
 const SPLASH_CSS = `
-#stylemate-splash{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:#f7f3ee;color:#2c2825;opacity:1;animation:stylemate-splash-out .3s ease .8s forwards}
+#stylemate-splash{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:#faf8f5;color:#1c1b19;opacity:1;animation:stylemate-splash-out .3s ease .8s forwards}
 @keyframes stylemate-splash-out{from{opacity:1}to{opacity:0;visibility:hidden}}
 html.splash-seen #stylemate-splash{display:none !important;animation:none !important}
 @media (prefers-reduced-motion: reduce){#stylemate-splash{animation:none}}
@@ -72,8 +72,8 @@ function RootDocument() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background: "#f7f3ee",
-              color: "#2c2825",
+              background: "#faf8f5",
+              color: "#1c1b19",
               opacity: 1,
             }}
           >
@@ -87,21 +87,21 @@ function RootDocument() {
                 style={{
                   margin: 0,
                   fontSize: "1.875rem",
-                  fontWeight: 600,
-                  fontStyle: "italic",
+                  fontWeight: 300,
+                  fontStyle: "normal",
                   letterSpacing: "-0.02em",
                   lineHeight: 1.2,
                 }}
               >
-                StyleMate <span style={{ color: "#c45c32" }}>AI</span>
+                StyleMate <span style={{ color: "#a9522e" }}>AI</span>
               </p>
               <p
                 style={{
                   margin: "0.75rem 0 0",
                   fontSize: "0.875rem",
                   fontStyle: "normal",
-                  fontWeight: 500,
-                  color: "#4a453f",
+                  fontWeight: 400,
+                  color: "#8c867e",
                 }}
               >
                 懂你衣橱的穿搭助理

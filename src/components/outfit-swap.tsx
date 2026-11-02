@@ -8,9 +8,9 @@ import { rerollOutfit, swapGarment, swapOptions } from "@/lib/closet/stylist";
 import type { Garment, Outfit } from "@/lib/closet/types";
 
 const toastStyle = {
-  background: "#fffdfb",
-  color: "#2c2825",
-  border: "1px solid #e7e0d8",
+  background: "#faf8f5",
+  color: "#1c1b19",
+  border: "1px solid #e9e5df",
 };
 
 export function OutfitSwap({
@@ -18,11 +18,17 @@ export function OutfitSwap({
   pieces,
   weather,
   rain,
+  hidePieces = false,
+  hideShuffle = false,
+  shuffleClassName = "text-sm text-muted-foreground",
 }: {
   outfit: Outfit;
   pieces: Garment[];
   weather: string;
   rain: boolean;
+  hidePieces?: boolean;
+  hideShuffle?: boolean;
+  shuffleClassName?: string;
 }) {
   const garments = useCloset((state) => state.garments);
   const replaceOutfit = useCloset((state) => state.replaceOutfit);
@@ -61,57 +67,52 @@ export function OutfitSwap({
 
   return (
     <div>
-      <ul className="mt-3 space-y-2">
-        {pieces.map((piece) => (
-          <li key={piece.id} className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setTarget(piece)}
-              className="flex min-h-12 min-w-0 flex-1 items-center gap-2 text-left"
-            >
-              <span className="h-14 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
-                <PiecePhoto garment={piece} />
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate text-sm font-semibold">{piece.name}</span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  {piece.owned ? "已有" : "想买"}
-                  {piece.brand ? ` · ${piece.brand}` : ""}
+      {hidePieces ? null : (
+        <ul className="mt-6 border-t border-border">
+          {pieces.map((piece) => (
+            <li key={piece.id} className="flex items-center gap-3 border-b border-border py-3">
+              <button
+                type="button"
+                onClick={() => setTarget(piece)}
+                className="flex min-h-12 min-w-0 flex-1 items-center gap-3 text-left"
+              >
+                <span className="h-16 w-12 shrink-0 overflow-hidden">
+                  <PiecePhoto garment={piece} />
                 </span>
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setTarget(piece)}
-              className="shrink-0 rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground"
-            >
-              换一件
-            </button>
-          </li>
-        ))}
-      </ul>
-      <button
-        type="button"
-        onClick={shuffle}
-        className="mt-3 min-h-11 text-sm font-semibold text-primary"
-      >
-        换一套
-      </button>
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px]">{piece.name}</span>
+                  <span className="mt-0.5 block truncate text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
+                    {piece.brand || "—"}
+                    {piece.owned ? "" : <span className="text-accent"> · 想买</span>}
+                  </span>
+                </span>
+              </button>
+              <button type="button" onClick={() => setTarget(piece)} className="shrink-0 text-sm text-muted-foreground">
+                换一件
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {hideShuffle ? null : (
+        <button type="button" onClick={shuffle} className={shuffleClassName}>
+          换一套
+        </button>
+      )}
       {target
         ? createPortal(
         <div className="fixed inset-0 z-[70] mx-auto flex w-full max-w-md items-end bg-ink/40" onClick={() => setTarget(null)}>
           <div
             role="dialog"
             aria-labelledby="swap-title"
-            className="max-h-[75dvh] w-full overflow-y-auto rounded-t-3xl bg-background px-5 pt-4 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
+            className="max-h-[75dvh] w-full overflow-y-auto bg-background px-6 pt-5 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
-            <div className="mb-3 flex items-center justify-between">
-              <h2 id="swap-title" className="text-xl font-semibold">
+            <div className="mb-4 flex items-center justify-between border-b border-border pb-3">
+              <h2 id="swap-title" className="text-[17px] font-medium">
                 换成别的{target.category}
               </h2>
-              <button type="button" onClick={() => setTarget(null)} className="min-h-11 px-2 text-sm font-semibold text-primary">
+              <button type="button" onClick={() => setTarget(null)} className="min-h-11 text-sm text-muted-foreground">
                 关闭
               </button>
             </div>
@@ -122,7 +123,7 @@ export function OutfitSwap({
                   setTarget(null);
                   void navigate({ to: "/wardrobe", search: { add: true } });
                 }}
-                className="w-full rounded-2xl border border-dashed border-primary/40 bg-card px-4 py-5 text-left text-sm font-semibold text-primary"
+                className="w-full border border-border px-4 py-5 text-left text-sm"
               >
                 衣柜里没有别的{target.category}，去添加
               </button>
@@ -133,20 +134,17 @@ export function OutfitSwap({
                     <button
                       type="button"
                       onClick={() => choose(item)}
-                      className="flex min-h-16 w-full items-center gap-3 rounded-2xl border border-border bg-card px-3 py-2 text-left"
+                      className="flex min-h-16 w-full items-center gap-3 border-b border-border py-3 text-left"
                     >
-                      <span className="h-14 w-11 shrink-0 overflow-hidden rounded-lg bg-muted">
+                      <span className="h-16 w-12 shrink-0 overflow-hidden">
                         <PiecePhoto garment={item} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-semibold">{item.name}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {item.color}
-                          {item.brand ? ` · ${item.brand}` : ""}
+                        <span className="block truncate text-[13px]">{item.name}</span>
+                        <span className="block truncate text-[11px] tracking-[0.14em] text-muted-foreground uppercase">
+                          {item.brand || item.color}
+                          {item.owned ? "" : <span className="text-accent"> · 想买</span>}
                         </span>
-                      </span>
-                      <span className={item.owned ? "text-xs text-success" : "text-xs font-semibold text-primary"}>
-                        {item.owned ? "已有" : "想买"}
                       </span>
                     </button>
                   </li>

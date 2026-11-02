@@ -13,6 +13,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AskRouteImport } from './routes/ask'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as LooksRouteImport } from './routes/looks'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as StyleRouteImport } from './routes/style'
@@ -38,6 +39,11 @@ const CalendarRoute = CalendarRouteImport.update({
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LooksRoute = LooksRouteImport.update({
+  id: '/looks',
+  path: '/looks',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -77,6 +83,7 @@ export interface FileRoutesByFullPath {
   '/ask': typeof AskRoute
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
+  '/looks': typeof LooksRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/style': typeof StyleRoute
@@ -89,6 +96,7 @@ export interface FileRoutesByTo {
   '/ask': typeof AskRoute
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
+  '/looks': typeof LooksRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/style': typeof StyleRoute
@@ -102,6 +110,7 @@ export interface FileRoutesById {
   '/ask': typeof AskRoute
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
+  '/looks': typeof LooksRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/style': typeof StyleRoute
@@ -116,6 +125,7 @@ export interface FileRouteTypes {
     | '/ask'
     | '/calendar'
     | '/login'
+    | '/looks'
     | '/profile'
     | '/register'
     | '/style'
@@ -128,6 +138,7 @@ export interface FileRouteTypes {
     | '/ask'
     | '/calendar'
     | '/login'
+    | '/looks'
     | '/profile'
     | '/register'
     | '/style'
@@ -140,6 +151,7 @@ export interface FileRouteTypes {
     | '/ask'
     | '/calendar'
     | '/login'
+    | '/looks'
     | '/profile'
     | '/register'
     | '/style'
@@ -153,6 +165,7 @@ export interface RootRouteChildren {
   AskRoute: typeof AskRoute
   CalendarRoute: typeof CalendarRoute
   LoginRoute: typeof LoginRoute
+  LooksRoute: typeof LooksRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   StyleRoute: typeof StyleRoute
@@ -189,6 +202,13 @@ declare module '@tanstack/react-router' {
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/looks': {
+      id: '/looks'
+      path: '/looks'
+      fullPath: '/looks'
+      preLoaderRoute: typeof LooksRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -241,6 +261,7 @@ const rootRouteChildren: RootRouteChildren = {
   AskRoute: AskRoute,
   CalendarRoute: CalendarRoute,
   LoginRoute: LoginRoute,
+  LooksRoute: LooksRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   StyleRoute: StyleRoute,

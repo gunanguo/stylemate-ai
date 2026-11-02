@@ -48,28 +48,28 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", "PingFang SC", "Noto Sans SC", "Hiragino Sans GB", "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
-  --color-background: oklch(97.8% 0.006 60);
-  --color-foreground: oklch(20% 0.006 50);
-  --color-card: oklch(99.5% 0.002 60);
-  --color-card-foreground: oklch(20% 0.006 50);
-  --color-primary: oklch(56% 0.16 38);
-  --color-primary-foreground: oklch(99% 0.004 60);
-  --color-secondary: oklch(94.5% 0.008 65);
-  --color-secondary-foreground: oklch(25% 0.008 50);
-  --color-muted: oklch(95% 0.007 65);
-  --color-muted-foreground: oklch(48% 0.012 55);
-  --color-accent: oklch(94% 0.03 45);
-  --color-accent-foreground: oklch(45% 0.14 38);
-  --color-destructive: oklch(55% 0.17 30);
-  --color-border: oklch(91.5% 0.008 60);
-  --color-ink: oklch(18% 0.004 50);
-  --color-ink-foreground: oklch(97% 0.004 60);
-  --color-success: oklch(42% 0.1 155);
-  --color-success-soft: oklch(95% 0.03 155);
-  --color-stage: oklch(94% 0.012 70);
-  --radius-lg: 1rem;
-  --shadow-soft: 0 1px 2px oklch(30% 0.02 50 / 0.04), 0 8px 24px -16px oklch(30% 0.02 50 / 0.18);
-  --shadow-float: 0 10px 24px -10px oklch(56% 0.16 38 / 0.45);
+  --color-background: #faf8f5;
+  --color-foreground: #1c1b19;
+  --color-card: #faf8f5;
+  --color-card-foreground: #1c1b19;
+  --color-primary: #1c1b19;
+  --color-primary-foreground: #faf8f5;
+  --color-secondary: #faf8f5;
+  --color-secondary-foreground: #1c1b19;
+  --color-muted: #faf8f5;
+  --color-muted-foreground: #8c867e;
+  --color-accent: #a9522e;
+  --color-accent-foreground: #faf8f5;
+  --color-destructive: #1c1b19;
+  --color-border: #e9e5df;
+  --color-ink: #1c1b19;
+  --color-ink-foreground: #faf8f5;
+  --color-success: #1c1b19;
+  --color-success-soft: #faf8f5;
+  --color-stage: #faf8f5;
+  --radius-lg: 0px;
+  --shadow-soft: none;
+  --shadow-float: none;
 }
 
 @layer base {
@@ -85,25 +85,35 @@
   body {
     margin: 0;
     min-height: 100dvh;
-    background: var(--color-stage);
+    background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
-    line-height: 1.5;
+    font-size: 14px;
+    line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
 
   ::selection {
-    background: var(--color-accent);
-    color: var(--color-accent-foreground);
+    background: #e9e5df;
+    color: #1c1b19;
   }
 }
 
 @layer components {
   .eyebrow {
+    font-size: 11px;
+    line-height: 1.4;
+    font-weight: 400;
     letter-spacing: 0.14em;
     text-transform: uppercase;
-    font-size: 0.75rem;
-    font-weight: 600;
+    color: #8c867e;
+  }
+
+  .display {
+    font-size: 30px;
+    line-height: 1.25;
+    font-weight: 300;
+    letter-spacing: -0.02em;
   }
 
   .no-scrollbar {
@@ -119,7 +129,7 @@
   }
 
   .aspect-look {
-    aspect-ratio: 4 / 5;
+    aspect-ratio: 3 / 4;
   }
 }
 

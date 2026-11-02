@@ -1,5 +1,5 @@
 import { useServerFn } from "@tanstack/react-start";
-import { Camera, ImagePlus, Plus, Sparkles, X } from "lucide-react";
+import { Camera, ImagePlus, Plus, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { COLOR_HEX } from "@/lib/closet/catalog";
@@ -89,24 +89,24 @@ export function EmptyClosetCard({ onAdd }: { onAdd: () => void }) {
   const reset = useCloset((state) => state.reset);
   const steps = [
     ["01", "拍照添加"],
-    ["02", "AI 自动识别"],
+    ["02", "自动识别"],
     ["03", "获取搭配"],
   ] as const;
   return (
-    <section className="mx-5 mt-6 rounded-3xl border border-border bg-card p-5 shadow-soft">
-      <h2 className="text-2xl font-semibold text-primary">你的衣橱正等待填满</h2>
-      <ol className="mt-5 space-y-3">
+    <section className="mt-8">
+      <h2 className="text-[17px] font-medium">你的衣橱正等待填满</h2>
+      <ol className="mt-4 border-t border-border">
         {steps.map(([step, label]) => (
-          <li key={step} className="flex items-center gap-3">
-            <span className="w-8 text-sm font-semibold text-primary">{step}</span>
-            <span className="font-medium">{label}</span>
+          <li key={step} className="flex items-center gap-4 border-b border-border py-3 text-sm">
+            <span className="eyebrow w-8">{step}</span>
+            <span>{label}</span>
           </li>
         ))}
       </ol>
       <button
         type="button"
         onClick={onAdd}
-        className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground"
+        className="mt-6 min-h-12 w-full bg-ink text-sm text-ink-foreground"
       >
         拍照添加第一件
       </button>
@@ -116,7 +116,7 @@ export function EmptyClosetCard({ onAdd }: { onAdd: () => void }) {
           reset();
           toast("已打开示例衣橱");
         }}
-        className="mt-2 min-h-12 w-full rounded-2xl bg-secondary text-sm font-semibold"
+        className="mt-4 text-sm text-muted-foreground"
       >
         先用示例衣橱看看
       </button>
@@ -124,25 +124,53 @@ export function EmptyClosetCard({ onAdd }: { onAdd: () => void }) {
   );
 }
 
+const STUDIO_LOOK = ["blazer", "knit", "loafers", "trousers"].join("\0");
+
+export function isStudioLook(ids: string[]) {
+  return [...ids].sort().join("\0") === STUDIO_LOOK;
+}
+
+export function LookPhoto({
+  ids,
+  pieces,
+  alt,
+}: {
+  ids: string[];
+  pieces: Garment[];
+  alt: string;
+}) {
+  if (isStudioLook(ids)) {
+    return (
+      <RemotePhoto
+        src="/hero/outfit-today.jpg"
+        alt={alt}
+        className="h-full w-full object-cover"
+        fallback={<LookCollage pieces={pieces} className="aspect-auto h-full" />}
+      />
+    );
+  }
+  return <LookCollage pieces={pieces} className="aspect-auto h-full" />;
+}
+
 export function LookCollage({ pieces, className }: { pieces: Garment[]; className?: string }) {
   const [main, ...rest] = pieces;
   if (!main) {
-    return <div className={cn("aspect-look rounded-2xl bg-muted", className)} />;
+    return <div className={cn("aspect-look", className)} />;
   }
   if (rest.length === 0) {
     return (
-      <div className={cn("aspect-look overflow-hidden rounded-2xl bg-muted", className)}>
+      <div className={cn("aspect-look overflow-hidden", className)}>
         <PiecePhoto garment={main} />
       </div>
     );
   }
   return (
-    <div className={cn("grid aspect-look grid-cols-5 grid-rows-6 gap-1 overflow-hidden rounded-2xl bg-muted p-1", className)}>
-      <div className="col-span-3 row-span-6 overflow-hidden rounded-xl">
+    <div className={cn("grid aspect-look grid-cols-5 grid-rows-6 gap-px overflow-hidden", className)}>
+      <div className="col-span-3 row-span-6 overflow-hidden">
         <PiecePhoto garment={main} />
       </div>
       {rest.slice(0, 3).map((piece) => (
-        <div key={piece.id} className="col-span-2 row-span-2 overflow-hidden rounded-xl">
+        <div key={piece.id} className="col-span-2 row-span-2 overflow-hidden">
           <PiecePhoto garment={piece} />
         </div>
       ))}
@@ -188,10 +216,8 @@ export function Chip({
       type="button"
       onClick={onClick}
       className={cn(
-        "min-h-11 shrink-0 rounded-full px-4 text-sm transition-colors",
-        active
-          ? "bg-primary font-medium text-primary-foreground"
-          : "border border-border bg-card text-muted-foreground",
+        "min-h-11 shrink-0 text-sm text-muted-foreground",
+        active && "text-foreground underline decoration-foreground underline-offset-8",
       )}
     >
       {children}
@@ -454,10 +480,9 @@ export function GarmentSheet({
           type="button"
           onClick={() => void recognizePhoto()}
           disabled={recognizing}
-          className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-ink text-sm font-semibold text-ink-foreground disabled:opacity-60"
+          className="mt-4 text-sm text-muted-foreground disabled:opacity-60"
         >
-          <Sparkles className="h-4 w-4" />
-          {recognizing ? "AI 正在识别衣物…" : draft.image ? "重新 AI 识别" : "开始 AI 识别"}
+          {recognizing ? "正在识别衣物…" : draft.image ? "重新识别" : "识别这张照片"}
         </button>
         <p className="mt-2 text-center text-xs leading-relaxed text-muted-foreground">
           {recognizing
@@ -585,20 +610,15 @@ export function GarmentSheet({
           className="mt-4 flex min-h-11 w-full items-center justify-between rounded-xl border border-border bg-card px-3 text-sm"
         >
           <span>{draft.owned ? "已经在我的衣橱" : "还想买，先记为新品"}</span>
-          <span
-            className={cn(
-              "rounded-full px-2.5 py-1 text-xs font-semibold",
-              draft.owned ? "bg-success-soft text-success" : "text-primary",
-            )}
-          >
-            {draft.owned ? "已拥有" : "新品"}
+          <span className={cn("text-xs", draft.owned ? "text-muted-foreground" : "text-accent")}>
+            {draft.owned ? "已有" : "想买"}
           </span>
         </button>
 
         <button
           type="button"
           onClick={save}
-          className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-float"
+          className="mt-8 min-h-12 w-full bg-ink text-sm text-ink-foreground"
         >
           {editing ? "保存修改" : "放入衣橱"}
         </button>
