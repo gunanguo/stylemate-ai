@@ -41,7 +41,9 @@ export function Shell({ children }: { children: ReactNode }) {
         </nav>
       )}
       <Toaster
-        position="top-center"
+        position="bottom-center"
+        offset={authScreen ? "1rem" : "calc(5.75rem + env(safe-area-inset-bottom))"}
+        mobileOffset={authScreen ? "1rem" : "calc(5.75rem + env(safe-area-inset-bottom))"}
         toastOptions={{
           style: {
             background: "var(--color-ink)",

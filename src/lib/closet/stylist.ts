@@ -248,6 +248,38 @@ export function swapOptions(garments: Garment[], current: Garment, outfitIds: st
     .sort((a, b) => Number(b.owned) - Number(a.owned) || a.name.localeCompare(b.name, "zh-CN"));
 }
 
+const TITLE_SLOTS = new Set<Garment["slot"]>(["outer", "top", "bottom", "onepiece"]);
+
+/** Title from the clothes actually in the look, so an edit cannot keep the old name. */
+export function lookTitle(pieces: Garment[]) {
+  const core = pieces.filter((piece) => TITLE_SLOTS.has(piece.slot));
+  const named = (core.length > 0 ? core : pieces).slice(0, 2).map((piece) => piece.name);
+  return named.length > 0 ? named.join("配") : "今日穿搭";
+}
+
+/** Tags from the pieces' own styles, plus the occasion when it is not already there. */
+export function lookTags(pieces: Garment[], occasion: string) {
+  const counts = new Map<string, number>();
+  for (const piece of pieces) {
+    for (const style of piece.styles) counts.set(style, (counts.get(style) ?? 0) + 1);
+  }
+  const tags = [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "zh-CN"))
+    .map(([style]) => style)
+    .slice(0, 2);
+  const occasionTag = occasion === "上班" ? "通勤" : occasion;
+  if (occasionTag && !tags.includes(occasionTag)) tags.push(occasionTag);
+  return tags.slice(0, 3);
+}
+
+function describeLook(pieces: Garment[], outfit: Outfit, weather: string, rain: boolean): Pick<Outfit, "name" | "tags" | "note"> {
+  return {
+    name: lookTitle(pieces),
+    tags: lookTags(pieces, outfit.occasion),
+    note: outfitNote(pieces, weather, rain),
+  };
+}
+
 export function swapGarment(
   outfit: Outfit,
   fromId: string,
@@ -260,10 +292,10 @@ export function swapGarment(
   const pieces = garmentIds
     .map((id) => (id === to.id ? to : garments.find((item) => item.id === id)))
     .filter((item): item is Garment => Boolean(item));
-  return { ...outfit, garmentIds, note: outfitNote(pieces, weather, rain) };
+  return { ...outfit, garmentIds, ...describeLook(pieces, outfit, weather, rain) };
 }
 
-/** A different full outfit, keeping the same id, name, and saved flag. */
+/** A different full outfit, keeping the same id and saved flag. Name and tags follow the new pieces. */
 export function rerollOutfit(
   outfit: Outfit,
   garments: Garment[],
@@ -283,7 +315,10 @@ export function rerollOutfit(
   const current = [...outfit.garmentIds].sort().join("-");
   const next = options.find((item) => [...item.garmentIds].sort().join("-") !== current);
   if (!next) return null;
-  return { ...outfit, garmentIds: [...next.garmentIds], note: next.note };
+  const pieces = next.garmentIds
+    .map((id) => garments.find((item) => item.id === id))
+    .filter((item): item is Garment => Boolean(item));
+  return { ...outfit, garmentIds: [...next.garmentIds], ...describeLook(pieces, outfit, weather, rain) };
 }
 
 export function piecesOf(outfit: Outfit, garments: Garment[]) {

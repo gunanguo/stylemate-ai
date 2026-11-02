@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { SEED_GARMENTS, SEED_OUTFITS } from "./catalog.ts";
-import { coerceOutfits, suggestOutfits, swapGarment, swapOptions } from "./stylist.ts";
+import { coerceOutfits, rerollOutfit, suggestOutfits, swapGarment, swapOptions } from "./stylist.ts";
 
 const SEED_LOOK_NAMES = new Set(SEED_OUTFITS.map((outfit) => outfit.name));
 
@@ -63,6 +63,27 @@ describe("outfit suggestions", () => {
     );
     assert.equal(swapped.garmentIds[0], options[0]?.id);
     assert.match(swapped.note, /叠穿|微风|外套/);
+    assert.equal(swapped.name, "驼色针织衫配黑色西裤");
+    assert.equal(swapped.name.includes("测试"), false);
+    assert.ok(swapped.tags.includes("通勤"));
+    assert.equal(swapped.tags.includes("精致休闲"), false);
+  });
+
+  it("renames a shuffled look from the new pieces", () => {
+    const commute = SEED_OUTFITS.find((item) => item.id === "look-commute");
+    assert.ok(commute);
+    const next = rerollOutfit(commute, SEED_GARMENTS, "凉爽", false, 7);
+    assert.ok(next);
+    assert.notEqual([...next.garmentIds].sort().join("-"), [...commute.garmentIds].sort().join("-"));
+    assert.notEqual(next.name, commute.name);
+    assert.equal(SEED_LOOK_NAMES.has(next.name), false);
+    assert.ok(next.tags.length > 0);
+    for (const id of next.garmentIds) {
+      const piece = SEED_GARMENTS.find((item) => item.id === id);
+      assert.ok(piece);
+      if (next.name.includes(piece.name)) return;
+    }
+    assert.fail("title should include a piece name");
   });
 
   it("keeps only real closet ids and a wearable combination", () => {

@@ -13,6 +13,12 @@ import { isComplete, missingPrice, piecesOf } from "@/lib/closet/stylist";
 import type { Garment } from "@/lib/closet/types";
 import { loadWeather, useLiveWeather } from "@/lib/closet/weather";
 
+const STUDIO_HERO_IDS = ["blazer", "knit", "loafers", "trousers"].join("\0");
+
+function isStudioHero(ids: string[]) {
+  return [...ids].sort().join("\0") === STUDIO_HERO_IDS;
+}
+
 export const Route = createFileRoute("/")({
   loader: () => loadWeather("上海"),
   component: Home,
@@ -44,6 +50,7 @@ function Home() {
     saved[0] ??
     outfits[0];
   const pieces = featured ? piecesOf(featured, garments) : [];
+  const studioHero = featured ? isStudioHero(featured.garmentIds) : false;
   const missing = pieces.filter((item) => !item.owned);
   const categoryCards: Array<{ key: string; label: string; src: string; items: Garment[] }> = [
     {
@@ -193,12 +200,16 @@ function Home() {
           </div>
           <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
             <div className="relative aspect-look">
-              <RemotePhoto
-                src="/hero/outfit-today.jpg"
-                alt="今日穿搭"
-                className="h-full w-full object-cover"
-                fallback={<LookCollage pieces={pieces} className="aspect-auto h-full rounded-none" />}
-              />
+              {studioHero ? (
+                <RemotePhoto
+                  src="/hero/outfit-today.jpg"
+                  alt="今日穿搭"
+                  className="h-full w-full object-cover"
+                  fallback={<LookCollage pieces={pieces} className="aspect-auto h-full rounded-none" />}
+                />
+              ) : (
+                <LookCollage pieces={pieces} className="aspect-auto h-full rounded-none" />
+              )}
               <span className="absolute top-3 right-3 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success">
                 今日首选
               </span>

@@ -1,5 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 import { PiecePhoto } from "@/components/closet-ui";
 import { useCloset } from "@/lib/closet/store";
@@ -96,12 +97,13 @@ export function OutfitSwap({
       >
         换一套
       </button>
-      {target ? (
-        <div className="fixed inset-0 z-50 mx-auto flex w-full max-w-md items-end bg-ink/40" onClick={() => setTarget(null)}>
+      {target
+        ? createPortal(
+        <div className="fixed inset-0 z-[70] mx-auto flex w-full max-w-md items-end bg-ink/40" onClick={() => setTarget(null)}>
           <div
             role="dialog"
             aria-labelledby="swap-title"
-            className="max-h-[75dvh] w-full overflow-y-auto rounded-t-3xl bg-background px-5 pt-4 pb-10"
+            className="max-h-[75dvh] w-full overflow-y-auto rounded-t-3xl bg-background px-5 pt-4 pb-[max(2.5rem,env(safe-area-inset-bottom))]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
@@ -152,8 +154,10 @@ export function OutfitSwap({
               </ul>
             )}
           </div>
-        </div>
-      ) : null}
+        </div>,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

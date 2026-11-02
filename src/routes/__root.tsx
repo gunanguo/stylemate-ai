@@ -1,5 +1,4 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Shell } from "@/components/shell";
@@ -17,7 +16,7 @@ html.splash-seen #stylemate-splash{display:none !important;animation:none !impor
 
 const SPLASH_SEEN_SCRIPT = `(function(){try{if(sessionStorage.getItem(${JSON.stringify(SPLASH_KEY)})==="1")document.documentElement.classList.add("splash-seen")}catch(e){}})();`;
 
-const SPLASH_BOOT_SCRIPT = `(function(){var el=document.getElementById("stylemate-splash");if(!el)return;var key=${JSON.stringify(SPLASH_KEY)};if(document.documentElement.classList.contains("splash-seen"))return;var reduce=false;try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}setTimeout(function(){try{sessionStorage.setItem(key,"1")}catch(e){}document.documentElement.classList.add("splash-seen");if(el.parentNode)el.remove()},reduce?180:1120)})();`;
+const SPLASH_BOOT_SCRIPT = `(function(){var el=document.getElementById("stylemate-splash");if(!el)return;var key=${JSON.stringify(SPLASH_KEY)};if(document.documentElement.classList.contains("splash-seen"))return;var reduce=false;try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}setTimeout(function(){try{sessionStorage.setItem(key,"1")}catch(e){}document.documentElement.classList.add("splash-seen")},reduce?180:1120)})();`;
 
 export const Route = createRootRoute({
   head: () => ({
@@ -48,18 +47,6 @@ export const Route = createRootRoute({
 });
 
 function RootDocument() {
-  const [splash, setSplash] = useState(true);
-  useEffect(() => {
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const seen = document.documentElement.classList.contains("splash-seen");
-    if (seen) {
-      setSplash(false);
-      return;
-    }
-    const timer = window.setTimeout(() => setSplash(false), reduce ? 180 : 1120);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   return (
     <html
       lang="zh-CN"
@@ -76,8 +63,7 @@ function RootDocument() {
         <HeadContent />
       </head>
       <body>
-        {splash ? (
-          <div
+        <div
             id="stylemate-splash"
             style={{
               position: "fixed",
@@ -122,7 +108,6 @@ function RootDocument() {
               </p>
             </div>
           </div>
-        ) : null}
         <script dangerouslySetInnerHTML={{ __html: SPLASH_BOOT_SCRIPT }} />
         <PreviewHostBridge />
         <AuthProvider>
