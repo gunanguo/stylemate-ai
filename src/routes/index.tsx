@@ -49,7 +49,7 @@ function Home() {
         </Link>
       </header>
 
-      <section className="mt-8">
+      <section className="mt-6">
         <p className="eyebrow">{homeEyebrow(now.month, now.day, forecast)}</p>
         <h1 className="display mt-3">{dayLine(forecast.band, forecast.label)}</h1>
       </section>
@@ -62,10 +62,10 @@ function Home() {
           }}
         />
       ) : featured ? (
-        <section className="mt-8">
+        <section className="mt-6">
           <button type="button" onClick={() => setOpen(true)} className="block w-full text-left" aria-label="查看这套穿搭">
-            <div className="mx-auto aspect-[4/5] h-[min(360px,42vh)] max-h-[42vh] max-w-full overflow-hidden">
-              <LookPhoto ids={featured.garmentIds} pieces={pieces} alt={featured.name} />
+            <div className="h-[300px] w-full overflow-hidden">
+              <LookPhoto ids={featured.garmentIds} pieces={pieces} alt={featured.name} position="object-top" />
             </div>
           </button>
           <h2 className="mt-4 text-[17px] font-medium">{featured.name}</h2>
@@ -99,19 +99,19 @@ function Home() {
         </section>
       ) : null}
 
-      <section className="mt-8">
+      <section className="mt-6">
         <div className="flex items-baseline justify-between">
           <h2 className="text-[17px] font-medium">我的衣橱 · {garments.length}</h2>
           <Link to="/wardrobe" className="text-sm text-muted-foreground">
             全部 →
           </Link>
         </div>
-        <ul className="mt-4 grid grid-cols-4 gap-2.5">
+        <ul className="mt-4 flex gap-2.5">
           {thumbs.map((item) => (
             <li key={item.id}>
               <Link to="/wardrobe" search={{ piece: item.id }} className="block">
-                <span className="block aspect-look overflow-hidden">
-                  <PiecePhoto garment={item} />
+                <span className="block h-24 w-[72px] overflow-hidden">
+                  <PiecePhoto garment={item} className="object-top" />
                 </span>
               </Link>
             </li>

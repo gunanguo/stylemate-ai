@@ -28,7 +28,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
   return (
     <div className="mx-auto min-h-dvh w-full max-w-md overflow-x-hidden bg-background text-foreground">
-      <main className={authScreen ? "" : "pb-28"}>
+      <main className={authScreen ? "" : "pb-[calc(5.25rem+env(safe-area-inset-bottom))]"}>
         <ClosetSync />
         <AccountGate>{children}</AccountGate>
       </main>

@@ -349,10 +349,11 @@ function CalendarPane() {
           <div className="mt-4">
             <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
               <div className={planned ? "aspect-look" : "h-[280px] overflow-hidden"}>
-                <LookPhoto ids={shown.garmentIds} pieces={shownPieces} alt={shown.name} />
+                <LookPhoto ids={shown.garmentIds} pieces={shownPieces} alt={shown.name} position="object-[center_20%]" />
               </div>
               {planned ? null : <p className="mt-2 text-xs text-muted-foreground">未安排</p>}
               <h2 className="mt-1 text-[17px] font-medium">{shown.name}</h2>
+              {shown.note ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{shown.note}</p> : null}
             </button>
             <div className="mt-3 flex gap-5">
               {planned ? (
@@ -383,7 +384,6 @@ function CalendarPane() {
                 {planning ? "正在搭配…" : "让造型师配一套"}
               </button>
             </div>
-            {shown.note ? <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{shown.note}</p> : null}
           </div>
         ) : (
           <div className="mt-4">

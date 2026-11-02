@@ -134,41 +134,52 @@ export function LookPhoto({
   ids,
   pieces,
   alt,
+  position = "object-cover",
 }: {
   ids: string[];
   pieces: Garment[];
   alt: string;
+  position?: string;
 }) {
+  const photo = cn("h-full w-full object-cover", position);
   if (isStudioLook(ids)) {
     return (
       <RemotePhoto
         src="/hero/outfit-today.jpg"
         alt={alt}
-        className="h-full w-full object-cover"
-        fallback={<LookCollage pieces={pieces} className="h-full w-full" />}
+        className={photo}
+        fallback={<LookCollage pieces={pieces} className="h-full w-full" position={position} />}
       />
     );
   }
-  return <LookCollage pieces={pieces} className="h-full w-full" />;
+  return <LookCollage pieces={pieces} className="h-full w-full" position={position} />;
 }
 
-function CollageCell({ piece }: { piece: Garment }) {
+function CollageCell({ piece, position }: { piece: Garment; position?: string }) {
   return (
     <div className="h-full min-h-0 overflow-hidden">
-      <PiecePhoto garment={piece} />
+      <PiecePhoto garment={piece} className={position} />
     </div>
   );
 }
 
 /** Fill a 3:4 frame from the pieces actually in the look. */
-export function LookCollage({ pieces, className }: { pieces: Garment[]; className?: string }) {
+export function LookCollage({
+  pieces,
+  className,
+  position,
+}: {
+  pieces: Garment[];
+  className?: string;
+  position?: string;
+}) {
   const shown = pieces.slice(0, 4);
   const frame = cn("grid h-full w-full gap-px overflow-hidden", className);
   if (shown.length === 0) return <div className={cn("h-full w-full", className)} />;
   if (shown.length === 1) {
     return (
       <div className={cn("h-full w-full overflow-hidden", className)}>
-        <PiecePhoto garment={shown[0]} />
+        <PiecePhoto garment={shown[0]} className={position} />
       </div>
     );
   }
@@ -176,7 +187,7 @@ export function LookCollage({ pieces, className }: { pieces: Garment[]; classNam
     return (
       <div className={cn(frame, "grid-cols-2")}>
         {shown.map((piece) => (
-          <CollageCell key={piece.id} piece={piece} />
+          <CollageCell key={piece.id} piece={piece} position={position} />
         ))}
       </div>
     );
@@ -185,10 +196,10 @@ export function LookCollage({ pieces, className }: { pieces: Garment[]; classNam
     return (
       <div className={cn(frame, "grid-cols-2 grid-rows-2")}>
         <div className="row-span-2 h-full min-h-0 overflow-hidden">
-          <PiecePhoto garment={shown[0]} />
+          <PiecePhoto garment={shown[0]} className={position} />
         </div>
         {shown.slice(1).map((piece) => (
-          <CollageCell key={piece.id} piece={piece} />
+          <CollageCell key={piece.id} piece={piece} position={position} />
         ))}
       </div>
     );
@@ -196,7 +207,7 @@ export function LookCollage({ pieces, className }: { pieces: Garment[]; classNam
   return (
     <div className={cn(frame, "grid-cols-2 grid-rows-2")}>
       {shown.map((piece) => (
-        <CollageCell key={piece.id} piece={piece} />
+        <CollageCell key={piece.id} piece={piece} position={position} />
       ))}
     </div>
   );
