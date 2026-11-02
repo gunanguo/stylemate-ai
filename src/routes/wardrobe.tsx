@@ -2,8 +2,10 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { useRequireAccount } from "@/components/account-gate";
 import { Chip, EmptyClosetCard, GarmentSheet, PiecePhoto } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
+import { authClient } from "@/lib/auth/client";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { costPerWear, wearStats } from "@/lib/closet/stats";
 import { useCloset } from "@/lib/closet/store";
@@ -24,6 +26,8 @@ export const Route = createFileRoute("/wardrobe")({
 function WardrobePage() {
   const search = Route.useSearch();
   const navigate = useNavigate();
+  const requireAccount = useRequireAccount();
+  const session = authClient.useSession();
   const garments = useCloset((state) => state.garments);
   const wornItems = useCloset((state) => state.wornItems);
   const removeGarment = useCloset((state) => state.removeGarment);
@@ -36,11 +40,19 @@ function WardrobePage() {
   const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
-    if (search.add) {
-      setSheet("add");
+    if (!search.add || session.isPending) return;
+    if (!requireAccount({ kind: "add" })) {
       void navigate({ to: "/wardrobe", search: search.piece ? { piece: search.piece } : {}, replace: true });
+      return;
     }
-  }, [search.add, search.piece, navigate]);
+    setSheet("add");
+    void navigate({ to: "/wardrobe", search: search.piece ? { piece: search.piece } : {}, replace: true });
+  }, [search.add, search.piece, navigate, requireAccount, session.isPending]);
+
+  function openAdd() {
+    if (!requireAccount({ kind: "add" })) return;
+    setSheet("add");
+  }
 
   useEffect(() => {
     if (!search.piece) return;
@@ -70,7 +82,7 @@ function WardrobePage() {
       <PageHeader eyebrow="我的数字衣橱" title="衣柜" />
       {garments.length === 0 ? (
         <>
-          <EmptyClosetCard onAdd={() => setSheet("add")} />
+          <EmptyClosetCard onAdd={openAdd} />
           <WishAsk count={0} />
         </>
       ) : (
@@ -81,7 +93,7 @@ function WardrobePage() {
         </p>
         <button
           type="button"
-          onClick={() => setSheet("add")}
+          onClick={openAdd}
           className="flex min-h-11 items-center gap-1 text-sm font-semibold text-primary"
         >
           <Plus className="h-4 w-4" />
@@ -133,7 +145,7 @@ function WardrobePage() {
       <WishAsk count={wishCount} />
 
       {visible.length === 0 ? (
-        <Empty onAdd={() => setSheet("add")} filtered={Boolean(query || ownedOnly || category !== "全部" || style !== "全部")} onReset={() => {
+        <Empty onAdd={openAdd} filtered={Boolean(query || ownedOnly || category !== "全部" || style !== "全部")} onReset={() => {
           setQuery("");
           setCategory("全部");
           setStyle("全部");
@@ -174,6 +186,7 @@ function WardrobePage() {
             <button
               type="button"
               onClick={() => {
+                if (!requireAccount({ kind: "piece", id: detail.id })) return;
                 setSheet(detail);
                 setDetail(null);
               }}
@@ -219,6 +232,7 @@ function WardrobePage() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!requireAccount({ kind: "piece", id: detail.id })) return;
                       const result = removeGarment(detail.id);
                       if (!result.ok) {
                         toast(result.error);

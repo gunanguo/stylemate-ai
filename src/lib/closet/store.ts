@@ -24,6 +24,8 @@ import {
 import type { Garment, Outfit } from "@/lib/closet/types";
 
 type Closet = ClosetData & {
+  /** `undefined` while a closet switch is in flight. `null` is the logged-out closet. */
+  readyOwner: string | null | undefined;
   addGarment: (garment: Garment) => WriteResult;
   updateGarment: (garment: Garment) => WriteResult;
   removeGarment: (id: string) => WriteResult;
@@ -182,9 +184,10 @@ export async function switchCloset(userId: string | null, displayName?: string) 
   const epoch = closetEpoch;
   setClosetOwner(userId);
   hydrated = true;
+  useCloset.setState({ readyOwner: undefined });
   if (!userId) {
     const saved = readCloset();
-    useCloset.setState(saved ? rebaseLegacySeedDates(saved) : freshData());
+    useCloset.setState({ ...(saved ? rebaseLegacySeedDates(saved) : freshData()), readyOwner: null });
     return;
   }
   try {
@@ -202,16 +205,23 @@ export async function switchCloset(userId: string | null, displayName?: string) 
       const imported = await saveCloset({ data: local });
       if (epoch !== closetEpoch) return;
       rememberImport(userId);
-      if (imported.closet) useCloset.setState(rebaseLegacySeedDates(imported.closet));
+      if (imported.closet) useCloset.setState({ ...rebaseLegacySeedDates(imported.closet), readyOwner: userId });
+      else useCloset.setState({ readyOwner: userId });
       if (imported.warning) toast(imported.warning);
       toast("已把这台设备上的衣橱导入账号");
       return;
     }
-    useCloset.setState(remote.closet ? rebaseLegacySeedDates(remote.closet) : emptyAccount(displayName));
+    useCloset.setState({
+      ...(remote.closet ? rebaseLegacySeedDates(remote.closet) : emptyAccount(displayName)),
+      readyOwner: userId,
+    });
   } catch {
     if (epoch !== closetEpoch) return;
     const local = localClosetFor(userId);
-    useCloset.setState(local ? rebaseLegacySeedDates(local) : emptyAccount(displayName));
+    useCloset.setState({
+      ...(local ? rebaseLegacySeedDates(local) : emptyAccount(displayName)),
+      readyOwner: userId,
+    });
     toast("衣橱暂时没能从服务器读取，先显示这台设备上的副本");
   }
 }
@@ -249,6 +259,7 @@ export const useCloset = create<Closet>()((set, get) => {
 
   return {
     ...freshData(),
+    readyOwner: undefined,
     addGarment: (garment) =>
       update({
         garments: [garment, ...get().garments],

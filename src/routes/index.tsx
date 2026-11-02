@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight, Bell, CloudSun, ShoppingBag } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRequireAccount } from "@/components/account-gate";
 import { EmptyClosetCard, LookCollage, PiecePhoto, RemotePhoto, ShopLinks } from "@/components/closet-ui";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { buildNotices, markNoticesRead, readNoticeIds } from "@/lib/closet/notices";
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/")({
 
 function Home() {
   const navigate = useNavigate();
+  const requireAccount = useRequireAccount();
   const profile = useCloset((state) => state.profile);
   const garments = useCloset((state) => state.garments);
   const outfits = useCloset((state) => state.outfits);
@@ -142,7 +144,12 @@ function Home() {
 
       {garments.length === 0 ? (
         <>
-          <EmptyClosetCard onAdd={() => void navigate({ to: "/wardrobe", search: { add: true } })} />
+          <EmptyClosetCard
+            onAdd={() => {
+              if (!requireAccount({ kind: "add" })) return;
+              void navigate({ to: "/wardrobe", search: { add: true } });
+            }}
+          />
           <AskClosetCard className="mt-5" count={0} />
         </>
       ) : (
@@ -236,6 +243,7 @@ function Home() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (!requireAccount({ kind: "save", outfitId: featured.id })) return;
                     toggleSave(featured.id);
                     toast(featured.saved ? "已取消收藏" : "已收藏造型");
                   }}
@@ -246,6 +254,7 @@ function Home() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (!requireAccount({ kind: "wear", date: now.key, outfitId: featured.id })) return;
                     wear(now.key, featured.id);
                     toast(worn[now.key] === featured.id ? "今天就穿这套" : "已记下，今天就穿");
                   }}
@@ -288,13 +297,16 @@ function Home() {
             </Link>
           ))}
         </div>
-        <Link
-          to="/wardrobe"
-          search={{ add: true }}
-          className="mt-3 flex min-h-12 items-center justify-center rounded-2xl border border-dashed border-primary/40 bg-card text-sm font-semibold text-primary"
+        <button
+          type="button"
+          onClick={() => {
+            if (!requireAccount({ kind: "add" })) return;
+            void navigate({ to: "/wardrobe", search: { add: true } });
+          }}
+          className="mt-3 flex min-h-12 w-full items-center justify-center rounded-2xl border border-dashed border-primary/40 bg-card text-sm font-semibold text-primary"
         >
           添加衣物
-        </Link>
+        </button>
       </section>
         </>
       )}
@@ -341,6 +353,7 @@ function Home() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!requireAccount({ kind: "own", id: item.id })) return;
                       markOwned(item.id);
                       toast(`「${item.name}」已放入衣橱`);
                     }}
@@ -356,7 +369,9 @@ function Home() {
             <button
               type="button"
               onClick={() => {
-                addShopping(missing.map((item) => item.id));
+                const ids = missing.map((item) => item.id);
+                if (!requireAccount({ kind: "shop", ids })) return;
+                addShopping(ids);
                 toast("已加入购买清单");
               }}
               className="mt-4 min-h-11 w-full rounded-xl bg-ink text-sm font-semibold text-ink-foreground"

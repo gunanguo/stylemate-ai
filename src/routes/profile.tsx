@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useRequireAccount } from "@/components/account-gate";
 import { AccountCard } from "@/components/account-card";
 import { Chip, ShopLinks } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
@@ -27,6 +28,7 @@ function ProfilePage() {
   const toggleShopping = useCloset((state) => state.toggleShopping);
   const importCloset = useCloset((state) => state.importCloset);
   const reset = useCloset((state) => state.reset);
+  const requireAccount = useRequireAccount();
   const [name, setLocal] = useState(profile.name);
   const [confirm, setConfirm] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -77,6 +79,8 @@ function ProfilePage() {
             onBlur={() => {
               const next = name.trim() || "小满";
               setLocal(next);
+              if (next === profile.name) return;
+              if (!requireAccount({ kind: "profile" })) return;
               setName(next);
             }}
             className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none"
@@ -87,7 +91,14 @@ function ProfilePage() {
         <p className="mt-1 text-sm text-muted-foreground">天气和日历预报跟着这个城市走。</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {CITIES.map((city) => (
-            <Chip key={city.name} active={profile.city === city.name} onClick={() => setCity(city.name)}>
+            <Chip
+              key={city.name}
+              active={profile.city === city.name}
+              onClick={() => {
+                if (!requireAccount({ kind: "profile" })) return;
+                setCity(city.name);
+              }}
+            >
               {city.name}
             </Chip>
           ))}
@@ -99,6 +110,7 @@ function ProfilePage() {
               toast("这台设备没有定位");
               return;
             }
+            if (!requireAccount({ kind: "profile" })) return;
             navigator.geolocation.getCurrentPosition(
               (position) => {
                 const city = nearestCity(position.coords.latitude, position.coords.longitude);
@@ -114,7 +126,17 @@ function ProfilePage() {
           使用我的位置
         </button>
 
-        <ShoppingList garments={garments} onBought={markOwned} onRemove={toggleShopping} />
+        <ShoppingList
+          garments={garments}
+          onBought={(id) => {
+            if (!requireAccount({ kind: "own", id })) return;
+            markOwned(id);
+          }}
+          onRemove={(id) => {
+            if (!requireAccount({ kind: "shop", ids: [id] })) return;
+            toggleShopping(id);
+          }}
+        />
 
         <IdleList garments={garments} wornItems={wornItems} today={today} />
 
@@ -122,7 +144,14 @@ function ProfilePage() {
         <p className="mt-1 text-sm text-muted-foreground">造型师会顺着这些气质来配，而不是定死规则。</p>
         <div className="mt-3 flex flex-wrap gap-2">
           {STYLE_TAGS.map((style) => (
-            <Chip key={style} active={profile.styles.includes(style)} onClick={() => toggleStyle(style)}>
+            <Chip
+              key={style}
+              active={profile.styles.includes(style)}
+              onClick={() => {
+                if (!requireAccount({ kind: "profile" })) return;
+                toggleStyle(style);
+              }}
+            >
               {style}
             </Chip>
           ))}
@@ -143,7 +172,10 @@ function ProfilePage() {
             </button>
             <button
               type="button"
-              onClick={() => fileRef.current?.click()}
+              onClick={() => {
+                if (!requireAccount({ kind: "profile" })) return;
+                fileRef.current?.click();
+              }}
               className="min-h-11 flex-1 rounded-xl bg-ink text-sm font-semibold text-ink-foreground"
             >
               导入
@@ -204,7 +236,10 @@ function ProfilePage() {
           ) : (
             <button
               type="button"
-              onClick={() => setConfirm(true)}
+                onClick={() => {
+                  if (!requireAccount({ kind: "profile" })) return;
+                  setConfirm(true);
+                }}
               className="mt-4 min-h-11 text-sm font-semibold text-primary"
             >
               恢复示例衣橱

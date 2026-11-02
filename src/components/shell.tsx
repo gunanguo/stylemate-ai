@@ -1,7 +1,9 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { CalendarDays, Shirt, Sparkles, Sun, User } from "lucide-react";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Toaster } from "sonner";
+import { AccountGate } from "@/components/account-gate";
+import { BrandMark } from "@/components/auth-screen";
 import { hydrateClosetFromStorage, switchCloset } from "@/lib/closet/store";
 import { authClient } from "@/lib/auth/client";
 import { cn } from "@/lib/cn";
@@ -25,8 +27,9 @@ export function Shell({ children }: { children: ReactNode }) {
     <div className="mx-auto min-h-dvh w-full max-w-md overflow-x-hidden bg-background text-foreground shadow-soft">
       <main className={authScreen ? "" : "pb-28"}>
         <ClosetSync />
-        {children}
+        <AccountGate>{children}</AccountGate>
       </main>
+      <Splash />
       {authScreen ? null : (
         <nav
           aria-label="主导航"
@@ -82,6 +85,47 @@ function Tab({ to, label, icon: Icon }: (typeof TABS)[number]) {
         <span className={cn("h-1 w-1 rounded-full", active ? "bg-primary" : "bg-transparent")} />
       </Link>
     </li>
+  );
+}
+
+const SPLASH_KEY = "stylemate-splash";
+
+function Splash() {
+  const [visible, setVisible] = useState(false);
+  const [reduce, setReduce] = useState(false);
+
+  useEffect(() => {
+    let seen = false;
+    try {
+      seen = sessionStorage.getItem(SPLASH_KEY) === "1";
+    } catch {
+      seen = true;
+    }
+    if (seen) return;
+    const motion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    setReduce(motion);
+    setVisible(true);
+    const hold = motion ? 280 : 1100;
+    const timer = window.setTimeout(() => {
+      setVisible(false);
+      try {
+        sessionStorage.setItem(SPLASH_KEY, "1");
+      } catch {
+        /* shown once this load either way */
+      }
+    }, hold);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!visible) return null;
+  return (
+    <div
+      className={cn("splash-overlay", reduce && "splash-overlay-still")}
+      role="presentation"
+      aria-hidden="true"
+    >
+      <BrandMark tagline className={cn("splash-copy text-center", reduce && "splash-copy-still")} />
+    </div>
   );
 }
 

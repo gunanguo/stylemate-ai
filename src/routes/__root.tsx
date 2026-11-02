@@ -17,6 +17,10 @@ export const Route = createRootRoute({
         content: "从你自己的数字衣橱里搭配今日造型，并补齐还缺的单品。",
       },
       { name: "theme-color", content: "#f7f3ee" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "StyleMate AI" },
     ],
     links: [
       { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" },
@@ -24,6 +28,7 @@ export const Route = createRootRoute({
       { rel: "stylesheet", href: appCss },
       { rel: "manifest", href: "/__grok/manifest.webmanifest" },
       { rel: "apple-touch-icon", href: "/icons/icon-180.png" },
+      { rel: "apple-touch-startup-image", href: "/splash-startup.png" },
     ],
   }),
   component: () => (

@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { useRequireAccount } from "@/components/account-gate";
 import { LookCollage } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
 import { dateKey, daysInMonth, firstWeekday, shanghaiNow } from "@/lib/closet/dates";
@@ -50,6 +51,7 @@ function CalendarPage() {
   const dailyDate = useCloset((state) => state.dailyDate);
   const dailyOutfitId = useCloset((state) => state.dailyOutfitId);
   const ask = useServerFn(suggestLooks);
+  const requireAccount = useRequireAccount();
   const [planning, setPlanning] = useState(false);
   const forecast = useLiveWeather(profile.city, Route.useLoaderData());
   const dayForecast = forecast.days.find((day) => day.date === selected);
@@ -79,11 +81,13 @@ function CalendarPage() {
 
   function plan(id: string) {
     if (!id) return;
+    if (!requireAccount({ kind: "wear", date: selected, outfitId: id })) return;
     wear(selected, id);
     toast("这天的穿搭已安排");
   }
 
   async function planFresh() {
+    if (!requireAccount({ kind: "calendar" })) return;
     const salt = bumpSalt();
     const request = {
       occasion: "日常",

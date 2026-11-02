@@ -3,9 +3,11 @@ import { useServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useRequireAccount } from "@/components/account-gate";
 import { Chip, LookCollage } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
+import { authClient } from "@/lib/auth/client";
 import { suggestLooks, type SuggestResult } from "@/lib/closet/suggest";
 import { useCloset } from "@/lib/closet/store";
 import { missingPrice, piecesOf, suggestOutfits } from "@/lib/closet/stylist";
@@ -35,13 +37,16 @@ function StylePage() {
   const [source, setSource] = useState<SuggestResult["source"] | null>(null);
   const [busy, setBusy] = useState(false);
   const ask = useServerFn(suggestLooks);
+  const requireAccount = useRequireAccount();
+  const session = authClient.useSession();
 
   useEffect(() => {
     if (!weatherTouched && forecast.live) setWeather(forecast.band);
   }, [forecast.band, forecast.live, weatherTouched]);
 
   async function generate() {
-    const nextSalt = bumpSalt();
+    const signedIn = Boolean(session.data?.user);
+    const nextSalt = signedIn ? bumpSalt() : 1;
     const request = {
       occasion,
       mood,
@@ -66,7 +71,7 @@ function StylePage() {
         setSource(null);
         return;
       }
-      for (const outfit of next) rememberOutfit(outfit);
+      if (signedIn) for (const outfit of next) rememberOutfit(outfit);
       setResults(next);
       setSource(result.source);
     } finally {
@@ -196,6 +201,9 @@ function StylePage() {
                   <button
                     type="button"
                     onClick={() => {
+                      if (!requireAccount({ kind: "save", outfitId: live.id })) return;
+                      if (!session.data?.user) return;
+                      if (!useCloset.getState().outfits.some((item) => item.id === live.id)) rememberOutfit(live);
                       toggleSave(live.id);
                       toast(live.saved ? "已取消收藏" : "已收藏造型");
                     }}
@@ -207,6 +215,8 @@ function StylePage() {
                     type="button"
                     onClick={() => {
                       const today = shanghaiNow().key;
+                      if (!requireAccount({ kind: "wear", date: today, outfitId: live.id })) return;
+                      if (!useCloset.getState().outfits.some((item) => item.id === live.id)) rememberOutfit(live);
                       setDaily(live);
                       wear(today, live.id);
                       toast("已设为今日穿搭");

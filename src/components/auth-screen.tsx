@@ -1,0 +1,69 @@
+import { Link } from "@tanstack/react-router";
+import type { ReactNode } from "react";
+
+export function BrandMark({ tagline = false, className = "" }: { tagline?: boolean; className?: string }) {
+  return (
+    <div className={className}>
+      <p className="text-3xl font-semibold tracking-tight italic">
+        StyleMate <span className="text-primary">AI</span>
+      </p>
+      {tagline ? <p className="mt-3 text-sm text-muted-foreground">懂你衣橱的穿搭助理</p> : null}
+    </div>
+  );
+}
+
+export function AuthScreen({
+  title,
+  lede,
+  error,
+  children,
+  switchHref,
+  switchText,
+}: {
+  title: string;
+  lede: string;
+  error?: string;
+  children: ReactNode;
+  switchHref: "/login" | "/register";
+  switchText: string;
+}) {
+  return (
+    <div className="flex min-h-dvh flex-col bg-[#f7f3ee] px-6 pt-16 pb-10">
+      <BrandMark tagline />
+      <h1 className="mt-10 text-2xl font-semibold">{title}</h1>
+      <p className="mt-2 text-sm text-muted-foreground">{lede}</p>
+      <div className="mt-6">{children}</div>
+      {error ? (
+        <p role="alert" className="mt-4 text-sm font-medium text-destructive">
+          {error}
+        </p>
+      ) : null}
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        <Link to={switchHref} className="font-semibold text-primary">
+          {switchText}
+        </Link>
+      </p>
+      <Link to="/" className="mt-4 text-center text-sm font-semibold text-muted-foreground">
+        先不登录，随便看看
+      </Link>
+    </div>
+  );
+}
+
+export function AuthField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <label className="mt-4 block text-xs font-medium text-muted-foreground first:mt-0">
+      {label}
+      {children}
+    </label>
+  );
+}
+
+export const authInputClass =
+  "mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none";

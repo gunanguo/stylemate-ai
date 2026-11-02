@@ -1,7 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { SocialLogin } from "@/components/social-login";
+import { AuthField, AuthScreen, authInputClass } from "@/components/auth-screen";
+import { readIntent } from "@/lib/account-intent";
 import { authClient, rememberAuthResult } from "@/lib/auth/client";
 import { authMessage } from "@/lib/auth/messages";
 
@@ -15,110 +15,123 @@ function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  async function goOn() {
+    const intent = readIntent();
+    if (intent?.kind === "add") {
+      await navigate({ to: "/wardrobe", search: { add: true } });
+      return;
+    }
+    if (intent?.kind === "piece") {
+      await navigate({ to: "/wardrobe", search: { piece: intent.id } });
+      return;
+    }
+    if (intent?.kind === "wear" || intent?.kind === "calendar") {
+      await navigate({ to: "/calendar" });
+      return;
+    }
+    if (intent?.kind === "profile") {
+      await navigate({ to: "/profile" });
+      return;
+    }
+    await navigate({ to: intent ? "/" : "/profile" });
+  }
 
   async function submit() {
     const nextEmail = email.trim();
     if (!name.trim()) {
-      toast("请填写名字");
+      setError("请填写名字");
       return;
     }
     if (!nextEmail.includes("@")) {
-      toast("请填写有效邮箱");
+      setError("请填写有效邮箱");
       return;
     }
     if (password.length < 8) {
-      toast("密码至少 8 位");
+      setError("密码至少 8 位");
       return;
     }
     if (password !== confirm) {
-      toast("两次密码不一致");
+      setError("两次密码不一致");
       return;
     }
     setBusy(true);
+    setError("");
     try {
-      const { data, error } = await authClient.signUp.email({
+      const { data, error: authError } = await authClient.signUp.email({
         email: nextEmail,
         password,
         name: name.trim(),
       });
-      if (error) throw new Error(authMessage(error.message, "注册失败"));
+      if (authError) throw new Error(authMessage(authError.message, "注册失败"));
       rememberAuthResult(data);
       await authClient.getSession();
-      toast("注册成功");
-      await navigate({ to: "/profile" });
-    } catch (error) {
-      toast(error instanceof Error ? error.message : "注册失败");
+      await goOn();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "注册失败");
     } finally {
       setBusy(false);
     }
   }
 
+  const userId = session.data?.user.id;
   useEffect(() => {
-    if (session.data?.user) void navigate({ to: "/profile" });
-  }, [navigate, session.data?.user]);
+    if (userId) void goOn();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
 
   return (
-    <div className="px-5 pt-12 pb-10">
-      <Link to="/login" className="text-sm font-semibold text-primary">
-        返回登录
-      </Link>
-      <p className="mt-8 text-xs font-medium text-muted-foreground">新账号</p>
-      <h1 className="mt-1 text-3xl font-semibold">注册</h1>
-      <p className="mt-2 text-sm text-muted-foreground">建一个邮箱账号，再回到衣橱。</p>
-      <label className="mt-8 block text-xs text-muted-foreground">
-        名字
-        <input
-          value={name}
-          onChange={(event) => setName(event.target.value)}
-          autoComplete="name"
-          className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none"
-        />
-      </label>
-      <label className="mt-4 block text-xs text-muted-foreground">
-        邮箱
-        <input
-          value={email}
-          onChange={(event) => setEmail(event.target.value)}
-          type="email"
-          autoComplete="email"
-          className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none"
-        />
-      </label>
-      <label className="mt-4 block text-xs text-muted-foreground">
-        密码
-        <input
-          value={password}
-          onChange={(event) => setPassword(event.target.value)}
-          type="password"
-          autoComplete="new-password"
-          className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none"
-        />
-      </label>
-      <label className="mt-4 block text-xs text-muted-foreground">
-        再输入一次密码
-        <input
-          value={confirm}
-          onChange={(event) => setConfirm(event.target.value)}
-          type="password"
-          autoComplete="new-password"
-          className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-base text-foreground outline-none"
-        />
-      </label>
-      <button
-        type="button"
-        disabled={busy}
-        onClick={() => void submit()}
-        className="mt-8 min-h-12 w-full rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+    <AuthScreen title="注册" lede="建一个邮箱账号，衣橱就只属于你。" error={error} switchHref="/login" switchText="已有账号？去登录">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void submit();
+        }}
       >
-        {busy ? "请稍候" : "注册"}
-      </button>
-      <SocialLogin />
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        已有账号？{" "}
-        <Link to="/login" className="font-semibold text-primary">
-          去登录
-        </Link>
-      </p>
-    </div>
+        <AuthField label="名字">
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            autoComplete="name"
+            className={authInputClass}
+          />
+        </AuthField>
+        <AuthField label="邮箱">
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            type="email"
+            autoComplete="email"
+            className={authInputClass}
+          />
+        </AuthField>
+        <AuthField label="密码">
+          <input
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            type="password"
+            autoComplete="new-password"
+            className={authInputClass}
+          />
+        </AuthField>
+        <AuthField label="再输入一次密码">
+          <input
+            value={confirm}
+            onChange={(event) => setConfirm(event.target.value)}
+            type="password"
+            autoComplete="new-password"
+            className={authInputClass}
+          />
+        </AuthField>
+        <button
+          type="submit"
+          disabled={busy}
+          className="mt-8 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {busy ? "请稍候" : "注册"}
+        </button>
+      </form>
+    </AuthScreen>
   );
 }
