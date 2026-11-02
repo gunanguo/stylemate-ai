@@ -43,7 +43,7 @@ export function AuthScreen({
           {switchText}
         </Link>
       </p>
-      <Link to="/" className="mt-4 text-center text-sm font-semibold text-muted-foreground">
+      <Link to="/" className="mt-4 text-center text-sm font-normal text-muted-foreground">
         先不登录，随便看看
       </Link>
     </div>

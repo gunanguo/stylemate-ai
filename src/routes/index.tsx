@@ -64,12 +64,12 @@ function Home() {
       ) : featured ? (
         <section className="mt-8">
           <button type="button" onClick={() => setOpen(true)} className="block w-full text-left" aria-label="查看这套穿搭">
-            <div className="aspect-look">
+            <div className="mx-auto aspect-[4/5] h-[min(360px,42vh)] max-h-[42vh] max-w-full overflow-hidden">
               <LookPhoto ids={featured.garmentIds} pieces={pieces} alt={featured.name} />
             </div>
           </button>
           <h2 className="mt-4 text-[17px] font-medium">{featured.name}</h2>
-          {featured.note ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{featured.note}</p> : null}
+          {featured.note ? <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">{featured.note}</p> : null}
           <div className="mt-3 flex items-end justify-between gap-3">
             <p className="text-sm text-muted-foreground">
               {pieces.length} 件 · 衣橱已有 {pieces.length - missing.length} 件

@@ -59,12 +59,13 @@ function ProfileHome() {
   const owned = garments.filter((item) => item.owned).length;
   const saved = outfits.filter((item) => item.saved).length;
   const days = Object.keys(worn).length;
+  const wishes = garments.filter((item, index, list) => !item.owned && list.findIndex((other) => other.id === item.id) === index).length;
 
-  const rows: Array<{ section: Section; label: string }> = [
-    { section: "shopping", label: "购买清单" },
+  const rows: Array<{ section: Section; label: string; value?: string }> = [
+    { section: "shopping", label: "购买清单", value: String(wishes) },
     { section: "idle", label: "很久没穿" },
-    { section: "styles", label: "风格偏好" },
-    { section: "city", label: "城市" },
+    { section: "styles", label: "风格偏好", value: profile.styles.join("、") },
+    { section: "city", label: "城市", value: profile.city },
     { section: "backup", label: "备份与导入" },
     { section: "sample", label: "示例衣橱" },
   ];
@@ -108,9 +109,13 @@ function ProfileHome() {
             <Link
               to="/profile"
               search={{ section: row.section }}
-              className="flex min-h-14 items-center text-sm"
+              className="flex min-h-14 items-center justify-between gap-3 text-sm"
             >
-              {row.label}
+              <span className="shrink-0">{row.label}</span>
+              <span className="flex min-w-0 items-center gap-2 text-muted-foreground">
+                {row.value ? <span className="truncate">{row.value}</span> : null}
+                <span aria-hidden="true">›</span>
+              </span>
             </Link>
           </li>
         ))}

@@ -118,19 +118,21 @@ function GeneratePane() {
   }
 
   const liveOpen = open ? (outfits.find((item) => item.id === open.id) ?? open) : null;
+  const remembered = recentLook(outfits, garments);
+  const preview = results.length > 0 ? results : remembered ? [remembered] : [];
 
   return (
     <>
       <section className="mt-8">
-        <h2 className="text-[17px] font-medium">今天去哪儿？</h2>
-        <div className="no-scrollbar -mx-6 mt-4 flex gap-5 overflow-x-auto px-6">
+        <h2 className="w-full text-[17px] font-medium">今天去哪儿{"\uFF1F"}</h2>
+        <div className="mt-4 flex gap-6">
           {OCCASION_ROW.map((item) => (
             <button
               key={item}
               type="button"
               onClick={() => setOccasion(item)}
               className={cn(
-                "shrink-0 pb-1 text-sm",
+                "pb-2 text-sm",
                 occasion === item ? "text-foreground underline underline-offset-8" : "text-muted-foreground",
               )}
             >
@@ -201,25 +203,7 @@ function GeneratePane() {
         ) : null}
       </section>
 
-      {results.length > 0 ? (
-        <section className="mt-8 space-y-8">
-          {results.map((outfit) => {
-            const live = outfits.find((item) => item.id === outfit.id) ?? outfit;
-            const pieces = piecesOf(live, garments);
-            return (
-              <article key={live.id}>
-                <button type="button" onClick={() => setOpen(live)} className="block w-full text-left">
-                  <div className="aspect-look">
-                    <LookPhoto ids={live.garmentIds} pieces={pieces} alt={live.name} />
-                  </div>
-                  <h3 className="mt-4 text-[17px] font-medium">{live.name}</h3>
-                  {live.note ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{live.note}</p> : null}
-                </button>
-              </article>
-            );
-          })}
-        </section>
-      ) : null}
+      <LookList outfits={preview} stored={outfits} garments={garments} onOpen={setOpen} />
 
       {liveOpen ? (
         <OutfitDetail
@@ -345,7 +329,7 @@ function CalendarPane() {
                 <button key={key} type="button" onClick={() => choose(key)} className="flex flex-col items-center py-1">
                   <span className="text-[11px] text-muted-foreground">{WEEK[weekdayIndex(key)]}</span>
                   <span className={cn("mt-1 text-sm", active && "underline underline-offset-4")}>{day}</span>
-                  <span className={cn("mt-1 h-[3px] w-[3px] rounded-full", worn[key] ? "bg-accent" : "bg-transparent")} />
+                  <span className={cn("mt-1 h-[3px] w-[3px] rounded-full", worn[key] ? "bg-foreground" : "bg-transparent")} />
                 </button>
               );
             })}
@@ -364,11 +348,11 @@ function CalendarPane() {
         {shown && shownPieces.length > 0 ? (
           <div className="mt-4">
             <button type="button" onClick={() => setOpen(true)} className="block w-full text-left">
-              <div className={cn("aspect-look", planned ? "" : "opacity-60")}>
+              <div className={planned ? "aspect-look" : "h-[280px] overflow-hidden"}>
                 <LookPhoto ids={shown.garmentIds} pieces={shownPieces} alt={shown.name} />
               </div>
-              <h2 className="mt-4 text-[17px] font-medium">{planned ? shown.name : "今日推荐，还没安排"}</h2>
-              {shown.note ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{shown.note}</p> : null}
+              {planned ? null : <p className="mt-2 text-xs text-muted-foreground">未安排</p>}
+              <h2 className="mt-1 text-[17px] font-medium">{shown.name}</h2>
             </button>
             <div className="mt-3 flex gap-5">
               {planned ? (
@@ -399,6 +383,7 @@ function CalendarPane() {
                 {planning ? "正在搭配…" : "让造型师配一套"}
               </button>
             </div>
+            {shown.note ? <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{shown.note}</p> : null}
           </div>
         ) : (
           <div className="mt-4">
@@ -477,7 +462,7 @@ function MonthGrid({
               <span className={cn("text-sm", key === selected && "underline underline-offset-4", key === today && key !== selected && "text-muted-foreground")}>
                 {day}
               </span>
-              <span className={cn("mt-1 h-[3px] w-[3px] rounded-full", worn[key] ? "bg-accent" : "bg-transparent")} />
+              <span className={cn("mt-1 h-[3px] w-[3px] rounded-full", worn[key] ? "bg-foreground" : "bg-transparent")} />
             </button>
           );
         })}
@@ -534,6 +519,46 @@ function weekdayIndex(key: string) {
   const utc = new Date(Date.UTC(year, month - 1, day, 4, 0, 0));
   const weekday = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Shanghai", weekday: "short" }).format(utc);
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
+}
+
+function recentLook(outfits: Outfit[], garments: Garment[]) {
+  const usable = outfits.filter((item) => piecesOf(item, garments).length > 0);
+  const saved = usable.filter((item) => item.saved);
+  const pool = saved.length > 0 ? saved : usable;
+  return [...pool].sort((a, b) => b.createdAt - a.createdAt)[0];
+}
+
+function LookList({
+  outfits,
+  stored,
+  garments,
+  onOpen,
+}: {
+  outfits: Outfit[];
+  stored: Outfit[];
+  garments: Garment[];
+  onOpen: (outfit: Outfit) => void;
+}) {
+  if (outfits.length === 0) return null;
+  return (
+    <section className="mt-8 space-y-8">
+      {outfits.map((outfit) => {
+        const live = stored.find((item) => item.id === outfit.id) ?? outfit;
+        const pieces = piecesOf(live, garments);
+        return (
+          <article key={live.id}>
+            <button type="button" onClick={() => onOpen(live)} className="block w-full text-left">
+              <div className="aspect-look overflow-hidden">
+                <LookPhoto ids={live.garmentIds} pieces={pieces} alt={live.name} />
+              </div>
+              <h3 className="mt-4 text-[17px] font-medium">{live.name}</h3>
+              {live.note ? <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{live.note}</p> : null}
+            </button>
+          </article>
+        );
+      })}
+    </section>
+  );
 }
 
 function slimGarments(garments: Garment[]) {

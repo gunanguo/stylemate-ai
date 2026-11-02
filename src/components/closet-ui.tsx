@@ -145,34 +145,58 @@ export function LookPhoto({
         src="/hero/outfit-today.jpg"
         alt={alt}
         className="h-full w-full object-cover"
-        fallback={<LookCollage pieces={pieces} className="aspect-auto h-full" />}
+        fallback={<LookCollage pieces={pieces} className="h-full w-full" />}
       />
     );
   }
-  return <LookCollage pieces={pieces} className="aspect-auto h-full" />;
+  return <LookCollage pieces={pieces} className="h-full w-full" />;
 }
 
+function CollageCell({ piece }: { piece: Garment }) {
+  return (
+    <div className="h-full min-h-0 overflow-hidden">
+      <PiecePhoto garment={piece} />
+    </div>
+  );
+}
+
+/** Fill a 3:4 frame from the pieces actually in the look. */
 export function LookCollage({ pieces, className }: { pieces: Garment[]; className?: string }) {
-  const [main, ...rest] = pieces;
-  if (!main) {
-    return <div className={cn("aspect-look", className)} />;
-  }
-  if (rest.length === 0) {
+  const shown = pieces.slice(0, 4);
+  const frame = cn("grid h-full w-full gap-px overflow-hidden", className);
+  if (shown.length === 0) return <div className={cn("h-full w-full", className)} />;
+  if (shown.length === 1) {
     return (
-      <div className={cn("aspect-look overflow-hidden", className)}>
-        <PiecePhoto garment={main} />
+      <div className={cn("h-full w-full overflow-hidden", className)}>
+        <PiecePhoto garment={shown[0]} />
+      </div>
+    );
+  }
+  if (shown.length === 2) {
+    return (
+      <div className={cn(frame, "grid-cols-2")}>
+        {shown.map((piece) => (
+          <CollageCell key={piece.id} piece={piece} />
+        ))}
+      </div>
+    );
+  }
+  if (shown.length === 3) {
+    return (
+      <div className={cn(frame, "grid-cols-2 grid-rows-2")}>
+        <div className="row-span-2 h-full min-h-0 overflow-hidden">
+          <PiecePhoto garment={shown[0]} />
+        </div>
+        {shown.slice(1).map((piece) => (
+          <CollageCell key={piece.id} piece={piece} />
+        ))}
       </div>
     );
   }
   return (
-    <div className={cn("grid aspect-look grid-cols-5 grid-rows-6 gap-px overflow-hidden", className)}>
-      <div className="col-span-3 row-span-6 overflow-hidden">
-        <PiecePhoto garment={main} />
-      </div>
-      {rest.slice(0, 3).map((piece) => (
-        <div key={piece.id} className="col-span-2 row-span-2 overflow-hidden">
-          <PiecePhoto garment={piece} />
-        </div>
+    <div className={cn(frame, "grid-cols-2 grid-rows-2")}>
+      {shown.map((piece) => (
+        <CollageCell key={piece.id} piece={piece} />
       ))}
     </div>
   );
