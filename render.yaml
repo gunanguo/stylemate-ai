@@ -8,7 +8,11 @@ services:
     plan: free
     region: singapore
     branch: render
-    buildCommand: npm run build
+    # Render does not install dependencies when buildCommand is set. npm ci
+    # matches package-lock.json; --include=dev keeps Vite and the rest of the
+    # toolchain when NODE_ENV=production would omit devDependencies.
+    buildCommand: npm ci --include=dev && npm run build
+    # npm start migrates, then listens on 0.0.0.0 and Render's PORT.
     startCommand: npm start
     healthCheckPath: /
     envVars:
@@ -16,6 +20,9 @@ services:
         value: "22"
       - key: HOST
         value: 0.0.0.0
+      # npm ci deletes node_modules first. A restored module cache can make that fail.
+      - key: NODE_MODULES_CACHE
+        value: "false"
       - key: DATABASE_URL
         sync: false
       - key: BETTER_AUTH_SECRET
