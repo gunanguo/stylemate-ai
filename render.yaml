@@ -7,7 +7,7 @@ services:
     runtime: node
     plan: free
     region: singapore
-    branch: main
+    branch: render
     buildCommand: npm run build
     startCommand: npm start
     healthCheckPath: /
