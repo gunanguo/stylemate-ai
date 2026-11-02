@@ -1,8 +1,8 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowRight, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Chip, GarmentSheet, PiecePhoto } from "@/components/closet-ui";
+import { Chip, EmptyClosetCard, GarmentSheet, PiecePhoto } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { costPerWear, wearStats } from "@/lib/closet/stats";
@@ -63,10 +63,18 @@ function WardrobePage() {
   });
 
   const ownedCount = garments.filter((item) => item.owned).length;
+  const wishCount = garments.length - ownedCount;
 
   return (
     <div>
       <PageHeader eyebrow="我的数字衣橱" title="衣柜" />
+      {garments.length === 0 ? (
+        <>
+          <EmptyClosetCard onAdd={() => setSheet("add")} />
+          <WishAsk count={0} />
+        </>
+      ) : (
+        <>
       <div className="flex items-end justify-between px-5 pt-2">
         <p className="text-sm text-muted-foreground">
           共 {ownedCount} 件衣物
@@ -123,8 +131,10 @@ function WardrobePage() {
           ))}
       </div>
 
+      <WishAsk count={wishCount} />
+
       {visible.length === 0 ? (
-        <Empty onAdd={() => setSheet("add")} filtered={Boolean(query || category !== "全部" || style !== "全部")} onReset={() => {
+        <Empty onAdd={() => setSheet("add")} filtered={Boolean(query || ownedOnly || category !== "全部" || style !== "全部")} onReset={() => {
           setQuery("");
           setCategory("全部");
           setStyle("全部");
@@ -148,6 +158,9 @@ function WardrobePage() {
             </li>
           ))}
         </ul>
+      )}
+
+        </>
       )}
 
       {sheet === "add" ? <GarmentSheet onClose={() => setSheet(null)} /> : null}
@@ -176,7 +189,7 @@ function WardrobePage() {
               <PiecePhoto garment={detail} />
             </div>
             <p className="mt-4 text-xs text-muted-foreground">{detail.brand || "未填写品牌"}</p>
-            <h2 className="text-2xl font-medium italic">{detail.name}</h2>
+            <h2 className="text-2xl font-semibold text-primary">{detail.name}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               {detail.category} · {detail.color}
               {detail.cut ? ` · ${detail.cut}` : ""}
@@ -261,6 +274,23 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
+function WishAsk({ count }: { count: number }) {
+  return (
+    <Link
+      to="/ask"
+      className="mx-5 mt-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3"
+    >
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">买之前先问问衣橱</span>
+        <span className="block text-xs text-muted-foreground">
+          {count > 0 ? `想买清单里有 ${count} 件` : "想买的时候，先对照衣橱"}
+        </span>
+      </span>
+      <ArrowRight className="h-4 w-4 shrink-0 text-primary" />
+    </Link>
+  );
+}
+
 function Empty({
   filtered,
   onAdd,
@@ -281,20 +311,5 @@ function Empty({
       </div>
     );
   }
-  return (
-    <div className="mx-5 mt-8 rounded-3xl border border-border bg-card px-6 py-10 text-center">
-      <p className="text-lg font-semibold">你的衣橱正等待填满</p>
-      <p className="mt-1 text-sm text-muted-foreground">空衣架，满是可能</p>
-      <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-        添加第一件衣服，StyleMate 会围绕你已拥有的单品为你搭配造型。
-      </p>
-      <button
-        type="button"
-        onClick={onAdd}
-        className="mt-5 min-h-12 rounded-2xl bg-primary px-5 text-sm font-semibold text-primary-foreground"
-      >
-        添加第一件衣服
-      </button>
-    </div>
-  );
+  return <EmptyClosetCard onAdd={onAdd} />;
 }

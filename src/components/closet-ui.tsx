@@ -1,6 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { Camera, ImagePlus, Plus, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { COLOR_HEX } from "@/lib/closet/catalog";
 import { shopLinks } from "@/lib/closet/shop";
@@ -52,20 +52,75 @@ export function PiecePhoto({
   );
 }
 
-export function LookCollage({ pieces }: { pieces: Garment[] }) {
+export function RemotePhoto({
+  src,
+  alt,
+  className,
+  fallback,
+}: {
+  src: string;
+  alt: string;
+  className?: string;
+  fallback: ReactNode;
+}) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return fallback;
+  return <img src={src} alt={alt} className={className} onError={() => setFailed(true)} />;
+}
+
+export function EmptyClosetCard({ onAdd }: { onAdd: () => void }) {
+  const reset = useCloset((state) => state.reset);
+  const steps = [
+    ["01", "拍照添加"],
+    ["02", "AI 自动识别"],
+    ["03", "获取搭配"],
+  ] as const;
+  return (
+    <section className="mx-5 mt-6 rounded-3xl border border-border bg-card p-5 shadow-soft">
+      <h2 className="text-2xl font-semibold text-primary">你的衣橱正等待填满</h2>
+      <ol className="mt-5 space-y-3">
+        {steps.map(([step, label]) => (
+          <li key={step} className="flex items-center gap-3">
+            <span className="w-8 text-sm font-semibold text-primary">{step}</span>
+            <span className="font-medium">{label}</span>
+          </li>
+        ))}
+      </ol>
+      <button
+        type="button"
+        onClick={onAdd}
+        className="mt-6 min-h-12 w-full rounded-2xl bg-primary text-sm font-semibold text-primary-foreground"
+      >
+        拍照添加第一件
+      </button>
+      <button
+        type="button"
+        onClick={() => {
+          reset();
+          toast("已打开示例衣橱");
+        }}
+        className="mt-2 min-h-12 w-full rounded-2xl bg-secondary text-sm font-semibold"
+      >
+        先用示例衣橱看看
+      </button>
+    </section>
+  );
+}
+
+export function LookCollage({ pieces, className }: { pieces: Garment[]; className?: string }) {
   const [main, ...rest] = pieces;
   if (!main) {
-    return <div className="aspect-look rounded-2xl bg-muted" />;
+    return <div className={cn("aspect-look rounded-2xl bg-muted", className)} />;
   }
   if (rest.length === 0) {
     return (
-      <div className="aspect-look overflow-hidden rounded-2xl bg-muted">
+      <div className={cn("aspect-look overflow-hidden rounded-2xl bg-muted", className)}>
         <PiecePhoto garment={main} />
       </div>
     );
   }
   return (
-    <div className="grid aspect-look grid-cols-5 grid-rows-6 gap-1 overflow-hidden rounded-2xl bg-muted p-1">
+    <div className={cn("grid aspect-look grid-cols-5 grid-rows-6 gap-1 overflow-hidden rounded-2xl bg-muted p-1", className)}>
       <div className="col-span-3 row-span-6 overflow-hidden rounded-xl">
         <PiecePhoto garment={main} />
       </div>
@@ -324,7 +379,7 @@ export function GarmentSheet({
       <header className="flex items-center justify-between px-5 pt-10 pb-3">
         <div>
           <p className="text-xs font-medium text-muted-foreground">{editing ? "编辑资料" : "拍照或上传"}</p>
-          <h2 className="text-2xl font-medium italic">{editing ? "编辑衣物" : "添加衣物"}</h2>
+          <h2 className="text-2xl font-semibold">{editing ? "编辑衣物" : "添加衣物"}</h2>
         </div>
         <button
           type="button"

@@ -1,19 +1,20 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Bell, CloudSun, Plus, ShoppingBag, Sparkles } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { ArrowRight, Bell, CloudSun, ShoppingBag } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Chip, LookCollage, PiecePhoto, ShopLinks } from "@/components/closet-ui";
+import { EmptyClosetCard, LookCollage, PiecePhoto, RemotePhoto, ShopLinks } from "@/components/closet-ui";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { buildNotices, markNoticesRead, readNoticeIds } from "@/lib/closet/notices";
 import { wearStats } from "@/lib/closet/stats";
 import { useCloset } from "@/lib/closet/store";
 import { isComplete, missingPrice, piecesOf } from "@/lib/closet/stylist";
-import { CATEGORIES, type Category } from "@/lib/closet/types";
+import type { Garment } from "@/lib/closet/types";
 import { useLiveWeather } from "@/lib/closet/weather";
 
 export const Route = createFileRoute("/")({ component: Home });
 
 function Home() {
+  const navigate = useNavigate();
   const profile = useCloset((state) => state.profile);
   const garments = useCloset((state) => state.garments);
   const outfits = useCloset((state) => state.outfits);
@@ -26,7 +27,6 @@ function Home() {
   const addShopping = useCloset((state) => state.addShopping);
   const wornItems = useCloset((state) => state.wornItems);
   const shopping = useCloset((state) => state.shopping);
-  const [filter, setFilter] = useState<Category>("全部");
   const [panel, setPanel] = useState<"notice" | "buy" | null>(null);
   const now = shanghaiNow();
   const forecast = useLiveWeather(profile.city);
@@ -40,16 +40,26 @@ function Home() {
     outfits[0];
   const pieces = featured ? piecesOf(featured, garments) : [];
   const missing = pieces.filter((item) => !item.owned);
-  const visible = (filter === "全部" ? owned : owned.filter((item) => item.category === filter)).slice(0, 3);
-  const groups = useMemo(() => {
-    const order: Array<"上衣" | "裙子" | "外套"> = ["上衣", "裙子", "外套"];
-    return order
-      .map((name) => {
-        const items = garments.filter((item) => item.category === name);
-        return { name, count: items.length, cover: items[0] };
-      })
-      .filter((group) => group.cover);
-  }, [garments]);
+  const categoryCards: Array<{ key: string; label: string; src: string; items: Garment[] }> = [
+    {
+      key: "tops",
+      label: "上衣",
+      src: "/categories/tops.jpg",
+      items: garments.filter((item) => item.category === "上衣"),
+    },
+    {
+      key: "dresses",
+      label: "连衣裙",
+      src: "/categories/dresses.jpg",
+      items: garments.filter((item) => item.slot === "onepiece" || /连衣/.test(`${item.name}${item.cut}`)),
+    },
+    {
+      key: "shoes",
+      label: "鞋子与包包",
+      src: "/categories/shoes.jpg",
+      items: garments.filter((item) => item.category === "鞋子" || item.category === "包包"),
+    },
+  ];
   const idle = owned
     .map((item) => ({ name: item.name, days: wearStats(item.id, item.addedAt, wornItems, now.key).idle }))
     .filter((item) => item.days >= 21)
@@ -128,10 +138,17 @@ function Home() {
         </section>
       ) : null}
 
+      {garments.length === 0 ? (
+        <>
+          <EmptyClosetCard onAdd={() => void navigate({ to: "/wardrobe", search: { add: true } })} />
+          <AskClosetCard className="mt-5" count={0} />
+        </>
+      ) : (
+        <>
       <section className="animate-rise px-5 pt-5">
         <p className="text-xs font-medium text-muted-foreground">{now.label}</p>
         <h1 className="mt-1 text-3xl leading-tight">
-          {now.hello}，<span className="text-primary italic">{profile.name}</span>
+          {now.hello}，<span className="font-semibold text-primary">{profile.name}</span>
         </h1>
         <div className="mt-2 flex items-center gap-1.5 text-sm text-muted-foreground">
           <CloudSun className="h-4 w-4" strokeWidth={1.75} />
@@ -153,16 +170,31 @@ function Home() {
 
       {featured ? (
         <section className="animate-rise mt-8 px-5">
-          <h2 className="eyebrow mb-3">今日穿搭</h2>
-          <article className="overflow-hidden rounded-3xl border border-border bg-card p-3 shadow-soft">
-            <div className="relative">
-              <LookCollage pieces={pieces} />
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <h2 className="shrink-0 text-base font-semibold">今日穿搭</h2>
+            <div className="flex min-w-0 flex-col items-end gap-1">
+              <span className="rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground">
+                {missing.length === 0 ? "全部来自衣橱" : `差 ${missing.length} 件`}
+              </span>
+              {featured.note ? (
+                <p className="line-clamp-2 text-right text-xs leading-snug text-primary">{featured.note}</p>
+              ) : null}
+            </div>
+          </div>
+          <article className="overflow-hidden rounded-3xl border border-border bg-card shadow-soft">
+            <div className="relative aspect-look">
+              <RemotePhoto
+                src="/hero/outfit-today.jpg"
+                alt="今日穿搭"
+                className="h-full w-full object-cover"
+                fallback={<LookCollage pieces={pieces} className="aspect-auto h-full rounded-none" />}
+              />
               <span className="absolute top-3 right-3 rounded-full bg-success-soft px-3 py-1 text-xs font-semibold text-success">
                 今日首选
               </span>
             </div>
-            <div className="px-2 pt-4 pb-2">
-              <h3 className="text-lg italic">{featured.name}</h3>
+            <div className="px-4 pt-4 pb-4">
+              <h3 className="text-lg font-semibold">{featured.name}</h3>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {featured.tags.map((tag) => (
                   <span
@@ -198,7 +230,6 @@ function Home() {
               <p className="mt-1 text-xs text-muted-foreground">
                 衣橱已有 {pieces.length - missing.length} 件 · 新品 {missing.length} 件
               </p>
-              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{featured.note}</p>
               <div className="mt-4 flex gap-2.5">
                 <button
                   type="button"
@@ -224,105 +255,47 @@ function Home() {
             </div>
           </article>
         </section>
-      ) : (
-        <section className="mt-8 px-5">
-          <p className="text-sm leading-relaxed text-muted-foreground">这个账号的衣橱还是空的，先添加衣服再来搭配。</p>
-          <Link to="/wardrobe" search={{ add: true }} className="mt-3 inline-flex min-h-11 items-center text-sm font-semibold text-primary">
-            添加衣物
-          </Link>
-        </section>
-      )}
+      ) : null}
 
-      <section className="animate-rise mt-5 px-5">
-        <Link
-          to="/style"
-          className="flex items-center justify-between rounded-2xl bg-primary p-5 text-primary-foreground shadow-float"
-        >
-          <span className="flex items-center gap-3.5">
-            <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary-foreground/15">
-              <Sparkles className="h-5 w-5" strokeWidth={1.75} />
-            </span>
-            <span>
-              <span className="block text-base font-semibold">生成新的穿搭</span>
-              <span className="block text-xs opacity-80">基于你衣橱中的 {owned.length} 件单品</span>
-            </span>
-          </span>
-          <ArrowRight className="h-5 w-5" />
-        </Link>
-        <Link
-          to="/ask"
-          className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-card p-4"
-        >
-          <span className="flex items-center gap-3">
-            <ShoppingBag className="h-5 w-5 text-primary" strokeWidth={1.75} />
-            <span>
-              <span className="block text-sm font-semibold">买前问衣橱</span>
-              <span className="block text-xs text-muted-foreground">先看它能配出几套，再决定要不要买</span>
-            </span>
-          </span>
-          <ArrowRight className="h-4 w-4 text-muted-foreground" />
-        </Link>
-      </section>
+      <AskClosetCard className="animate-rise mt-5" count={owned.length} />
 
-      <section className="animate-rise mt-10">
-        <div className="flex items-center justify-between px-5">
-          <h2 className="eyebrow">我的数字衣橱</h2>
+      <section className="animate-rise mt-8 px-5">
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold">衣物分类</h2>
           <Link to="/wardrobe" className="text-sm font-semibold text-primary">
             查看全部
           </Link>
         </div>
-        <div className="no-scrollbar mt-4 flex gap-2 overflow-x-auto px-5">
-          {CATEGORIES.filter((item) => item !== "配饰").map((item) => (
-            <Chip key={item} active={filter === item} onClick={() => setFilter(item)}>
-              {item}
-            </Chip>
-          ))}
-        </div>
-        <div className="mt-4 grid grid-cols-3 gap-2.5 px-5">
-          {visible.map((item) => (
+        <div className="mt-3 grid gap-3">
+          {categoryCards.map((card) => (
             <Link
-              key={item.id}
+              key={card.key}
               to="/wardrobe"
-              search={{ piece: item.id }}
-              className="aspect-square overflow-hidden rounded-2xl bg-muted"
+              className="relative block h-36 overflow-hidden rounded-3xl bg-muted shadow-soft"
             >
-              <PiecePhoto garment={item} />
+              <RemotePhoto
+                src={card.src}
+                alt={card.label}
+                className="h-full w-full object-cover"
+                fallback={<CategoryFallback items={card.items} label={card.label} />}
+              />
+              <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-ink/75 to-transparent px-4 pt-10 pb-3 text-ink-foreground">
+                <span className="block text-lg font-semibold">{card.label}</span>
+                <span className="block text-xs">{card.items.length} 件</span>
+              </span>
             </Link>
           ))}
         </div>
-        <div className="mt-2.5 px-5">
-          <Link
-            to="/wardrobe"
-            search={{ add: true }}
-            className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-primary/40 bg-card text-sm font-medium text-primary"
-          >
-            <Plus className="h-4 w-4" />
-            添加衣物
-          </Link>
-        </div>
+        <Link
+          to="/wardrobe"
+          search={{ add: true }}
+          className="mt-3 flex min-h-12 items-center justify-center rounded-2xl border border-dashed border-primary/40 bg-card text-sm font-semibold text-primary"
+        >
+          添加衣物
+        </Link>
       </section>
-
-      <section className="animate-rise mt-10">
-        <h2 className="eyebrow px-5">衣物分类</h2>
-        <div className="no-scrollbar mt-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-5 pb-2">
-          {groups.map((group) => (
-            <Link
-              key={group.name}
-              to="/wardrobe"
-              className="w-56 shrink-0 snap-start rounded-3xl border border-border bg-card p-2.5 shadow-soft"
-            >
-              <div className="aspect-look overflow-hidden rounded-2xl">
-                {group.cover ? <PiecePhoto garment={group.cover} /> : null}
-              </div>
-              <div className="px-1.5 pt-3 pb-1">
-                <p className="font-semibold">{group.name}</p>
-                <p className="text-xs text-muted-foreground">{group.count} 件</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-        <p className="px-5 pt-6 pb-2 text-center text-sm text-muted-foreground">用心穿搭，从容生活。</p>
-      </section>
+        </>
+      )}
 
       {panel === "notice" ? (
         <Sheet title="通知" onClose={() => setPanel(null)}>
@@ -395,6 +368,47 @@ function Home() {
   );
 }
 
+function AskClosetCard({ className, count }: { className?: string; count: number }) {
+  return (
+    <Link
+      to="/ask"
+      className={`mx-5 flex items-center justify-between gap-3 rounded-3xl bg-primary p-5 text-primary-foreground shadow-float ${className ?? ""}`}
+    >
+      <span className="flex min-w-0 items-center gap-3.5">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-primary-foreground/15">
+          <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-base font-semibold">买之前先问问衣橱</span>
+          <span className="block text-xs opacity-80">
+            {count > 0 ? `先看它能配出几套，衣橱里已有 ${count} 件` : "先看它能配出几套，再决定要不要买"}
+          </span>
+        </span>
+      </span>
+      <ArrowRight className="h-5 w-5 shrink-0" />
+    </Link>
+  );
+}
+
+function CategoryFallback({ items, label }: { items: Garment[]; label: string }) {
+  const covers = items.slice(0, 3);
+  if (covers.length === 0) {
+    return (
+      <div className="flex h-full items-center justify-center bg-accent text-sm font-semibold text-accent-foreground">
+        {label}
+      </div>
+    );
+  }
+  const columns = covers.length === 1 ? "grid-cols-1" : covers.length === 2 ? "grid-cols-2" : "grid-cols-3";
+  return (
+    <div className={`grid h-full ${columns}`}>
+      {covers.map((item) => (
+        <PiecePhoto key={item.id} garment={item} />
+      ))}
+    </div>
+  );
+}
+
 function Sheet({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
   return (
     <div className="fixed inset-0 z-50 mx-auto flex w-full max-w-md items-end bg-ink/40" onClick={onClose}>
@@ -404,7 +418,7 @@ function Sheet({ title, onClose, children }: { title: string; onClose: () => voi
       >
         <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-border" />
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-medium italic">{title}</h2>
+          <h2 className="text-xl font-semibold">{title}</h2>
           <button type="button" onClick={onClose} className="min-h-11 px-2 text-sm font-semibold text-primary">
             关闭
           </button>

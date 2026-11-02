@@ -168,7 +168,7 @@ function StylePage() {
               <LookCollage pieces={pieces} />
               <div className="px-1 pt-3">
                 <div>
-                  <h3 className="text-lg italic">{live.name}</h3>
+                  <h3 className="text-lg font-semibold">{live.name}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{live.note}</p>
                 </div>
                 <ul className="mt-3 space-y-1">

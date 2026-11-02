@@ -1,6 +1,45 @@
+import { chinaNoonMs, shanghaiNow, shiftChinaKey } from "./dates.ts";
 import type { Garment, Outfit } from "@/lib/closet/types";
 
 const T = 1_762_000_000_000;
+
+/** Original seed timestamps. Closets saved before relative dates still carry these. */
+export const LEGACY_SEED_ADDED_AT = T;
+
+const SEED_IDS = [
+  "blazer",
+  "knit",
+  "trousers",
+  "loafers",
+  "shirt",
+  "black-pants",
+  "skirt",
+  "trench",
+  "denim",
+  "dress",
+] as const;
+
+/** Added a few weeks ago, counted from today, so idle days stay honest. */
+export function seedAddedAt(index: number, now = new Date()) {
+  const today = shanghaiNow(now).key;
+  return chinaNoonMs(shiftChinaKey(today, -(8 + index * 3)));
+}
+
+/** Last few wears, always just before today. */
+export function seedWorn(now = new Date()): Record<string, string> {
+  const today = shanghaiNow(now).key;
+  return {
+    [shiftChinaKey(today, -4)]: "look-denim",
+    [shiftChinaKey(today, -3)]: "look-mono",
+    [shiftChinaKey(today, -2)]: "look-dress",
+    [shiftChinaKey(today, -1)]: "look-trench",
+  };
+}
+
+export function legacySeedIndex(id: string) {
+  const index = SEED_IDS.indexOf(id as (typeof SEED_IDS)[number]);
+  return index < 0 ? null : index;
+}
 
 export const SEED_GARMENTS: Garment[] = [
   {
@@ -18,7 +57,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/blazer.svg",
     warmth: 2,
     formality: 3,
-    addedAt: T,
+    addedAt: seedAddedAt(0),
   },
   {
     id: "knit",
@@ -35,7 +74,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/knit.svg",
     warmth: 3,
     formality: 2,
-    addedAt: T + 1,
+    addedAt: seedAddedAt(1),
   },
   {
     id: "trousers",
@@ -52,7 +91,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/trousers.svg",
     warmth: 1,
     formality: 3,
-    addedAt: T + 2,
+    addedAt: seedAddedAt(2),
   },
   {
     id: "loafers",
@@ -69,7 +108,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/loafers.svg",
     warmth: 1,
     formality: 3,
-    addedAt: T + 3,
+    addedAt: seedAddedAt(3),
   },
   {
     id: "shirt",
@@ -86,7 +125,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/shirt.svg",
     warmth: 1,
     formality: 2,
-    addedAt: T + 4,
+    addedAt: seedAddedAt(4),
   },
   {
     id: "black-pants",
@@ -103,7 +142,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/black-pants.svg",
     warmth: 2,
     formality: 3,
-    addedAt: T + 5,
+    addedAt: seedAddedAt(5),
   },
   {
     id: "skirt",
@@ -120,7 +159,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/skirt.svg",
     warmth: 1,
     formality: 2,
-    addedAt: T + 6,
+    addedAt: seedAddedAt(6),
   },
   {
     id: "trench",
@@ -137,7 +176,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/trench.svg",
     warmth: 2,
     formality: 3,
-    addedAt: T + 7,
+    addedAt: seedAddedAt(7),
   },
   {
     id: "denim",
@@ -154,7 +193,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/denim.svg",
     warmth: 2,
     formality: 1,
-    addedAt: T + 8,
+    addedAt: seedAddedAt(8),
   },
   {
     id: "dress",
@@ -171,7 +210,7 @@ export const SEED_GARMENTS: Garment[] = [
     image: "/wardrobe/dress.svg",
     warmth: 1,
     formality: 3,
-    addedAt: T + 9,
+    addedAt: seedAddedAt(9),
   },
 ];
 
@@ -233,12 +272,7 @@ export const SEED_OUTFITS: Outfit[] = [
   },
 ];
 
-export const SEED_WORN: Record<string, string> = {
-  "2026-10-29": "look-denim",
-  "2026-10-30": "look-mono",
-  "2026-10-31": "look-dress",
-  "2026-11-01": "look-trench",
-};
+export const SEED_WORN: Record<string, string> = seedWorn();
 
 export const COLOR_HEX: Record<string, string> = {
   黑色: "#1c1c1c",

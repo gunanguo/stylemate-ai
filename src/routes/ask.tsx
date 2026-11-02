@@ -121,7 +121,7 @@ function Result({ advice, garments }: { advice: BuyAdvice; garments: Garment[] }
   return (
     <section className="mx-5 mt-5 mb-4 rounded-3xl border border-border bg-card p-4">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl italic">{advice.headline}</h2>
+        <h2 className="text-2xl font-semibold text-primary">{advice.headline}</h2>
         <span className={`rounded-full px-3 py-1 text-xs font-semibold ${VERDICT_STYLE[advice.verdict]}`}>
           {advice.verdict === "buy" ? "建议买" : advice.verdict === "skip" ? "建议跳过" : "先观望"}
         </span>

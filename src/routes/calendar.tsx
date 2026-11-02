@@ -161,7 +161,7 @@ function CalendarPage() {
           <article className="mt-3 overflow-hidden rounded-3xl border border-border bg-card p-3">
             <LookCollage pieces={pieces} />
             <div className="px-1 pt-3">
-              <h3 className="text-lg italic">{outfit.name}</h3>
+              <h3 className="text-lg font-semibold">{outfit.name}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{pieces.map((item) => item.name).join(" · ")}</p>
               <button
                 type="button"

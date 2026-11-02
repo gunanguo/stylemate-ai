@@ -73,3 +73,15 @@ export function firstWeekday(year: number, month: number) {
 export function cny(amount: number) {
   return `¥${Math.round(amount).toLocaleString("zh-CN")}`;
 }
+
+/** Move a China calendar day by `deltaDays` (negative is the past). */
+export function shiftChinaKey(key: string, deltaDays: number) {
+  const [year, month, day] = key.split("-").map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day + deltaDays, 4, 0, 0));
+  return shanghaiNow(utc).key;
+}
+
+/** Noon in mainland China for a `YYYY-MM-DD` key. */
+export function chinaNoonMs(key: string) {
+  return Date.parse(`${key}T12:00:00+08:00`);
+}

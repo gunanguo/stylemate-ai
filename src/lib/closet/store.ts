@@ -1,6 +1,13 @@
 import { toast } from "sonner";
 import { create } from "zustand";
-import { SEED_GARMENTS, SEED_OUTFITS, SEED_WORN } from "@/lib/closet/catalog";
+import {
+  LEGACY_SEED_ADDED_AT,
+  SEED_GARMENTS,
+  SEED_OUTFITS,
+  legacySeedIndex,
+  seedAddedAt,
+  seedWorn,
+} from "@/lib/closet/catalog";
 import { shanghaiNow } from "@/lib/closet/dates";
 import { shouldImportLocalCloset } from "@/lib/closet/snapshot";
 import { loadCloset, saveCloset } from "@/lib/closet/sync";
@@ -42,16 +49,23 @@ function wornItemsFrom(worn: Record<string, string>, outfits: ClosetData["outfit
   );
 }
 
-function freshData(): ClosetData {
+function freshData(now = new Date()): ClosetData {
   const outfits = SEED_OUTFITS.map((outfit) => ({
     ...outfit,
     tags: [...outfit.tags],
     garmentIds: [...outfit.garmentIds],
   }));
-  const worn = { ...SEED_WORN };
+  const worn = seedWorn(now);
   return {
     profile: { name: "小满", styles: ["静奢风", "职场通勤"], city: "上海" },
-    garments: SEED_GARMENTS.map((garment) => ({ ...garment, styles: [...garment.styles] })),
+    garments: SEED_GARMENTS.map((garment) => {
+      const index = legacySeedIndex(garment.id);
+      return {
+        ...garment,
+        styles: [...garment.styles],
+        addedAt: index == null ? garment.addedAt : seedAddedAt(index, now),
+      };
+    }),
     outfits,
     worn,
     wornItems: wornItemsFrom(worn, outfits),
@@ -59,6 +73,31 @@ function freshData(): ClosetData {
     dailyDate: "",
     dailyOutfitId: "look-commute",
     salt: 1,
+  };
+}
+
+/** Saved copies of the original seed still carry absolute 2025 timestamps. */
+function rebaseLegacySeedDates(data: ClosetData, now = new Date()): ClosetData {
+  let garmentChanged = false;
+  const garments = data.garments.map((garment) => {
+    const index = legacySeedIndex(garment.id);
+    if (index == null || garment.addedAt !== LEGACY_SEED_ADDED_AT + index) return garment;
+    garmentChanged = true;
+    return { ...garment, addedAt: seedAddedAt(index, now) };
+  });
+  const legacyWorn =
+    data.worn["2026-10-29"] === "look-denim" &&
+    data.worn["2026-10-30"] === "look-mono" &&
+    data.worn["2026-10-31"] === "look-dress" &&
+    data.worn["2026-11-01"] === "look-trench" &&
+    Object.keys(data.worn).length === 4;
+  if (!garmentChanged && !legacyWorn) return data;
+  const worn = legacyWorn ? seedWorn(now) : data.worn;
+  return {
+    ...data,
+    garments: garmentChanged ? garments : data.garments,
+    worn,
+    wornItems: legacyWorn ? wornItemsFrom(worn, data.outfits) : data.wornItems,
   };
 }
 
@@ -139,7 +178,7 @@ export async function switchCloset(userId: string | null, displayName?: string) 
   hydrated = true;
   if (!userId) {
     const saved = readCloset();
-    useCloset.setState(saved ?? freshData());
+    useCloset.setState(saved ? rebaseLegacySeedDates(saved) : freshData());
     return;
   }
   try {
@@ -157,16 +196,16 @@ export async function switchCloset(userId: string | null, displayName?: string) 
       const imported = await saveCloset({ data: local });
       if (epoch !== closetEpoch) return;
       rememberImport(userId);
-      if (imported.closet) useCloset.setState(imported.closet);
+      if (imported.closet) useCloset.setState(rebaseLegacySeedDates(imported.closet));
       if (imported.warning) toast(imported.warning);
       toast("已把这台设备上的衣橱导入账号");
       return;
     }
-    useCloset.setState(remote.closet ?? emptyAccount(displayName));
+    useCloset.setState(remote.closet ? rebaseLegacySeedDates(remote.closet) : emptyAccount(displayName));
   } catch {
     if (epoch !== closetEpoch) return;
     const local = localClosetFor(userId);
-    useCloset.setState(local ?? emptyAccount(displayName));
+    useCloset.setState(local ? rebaseLegacySeedDates(local) : emptyAccount(displayName));
     toast("衣橱暂时没能从服务器读取，先显示这台设备上的副本");
   }
 }
@@ -301,5 +340,5 @@ export function hydrateClosetFromStorage() {
   hydrated = true;
   const saved = readCloset();
   if (!saved) return;
-  useCloset.setState(saved);
+  useCloset.setState(rebaseLegacySeedDates(saved));
 }

@@ -49,7 +49,7 @@ function LoginPage() {
         返回
       </Link>
       <p className="mt-8 text-xs font-medium text-muted-foreground">欢迎回来</p>
-      <h1 className="mt-1 text-3xl font-medium italic">登录</h1>
+      <h1 className="mt-1 text-3xl font-semibold">登录</h1>
       <p className="mt-2 text-sm text-muted-foreground">用已经注册的邮箱进入衣橱。</p>
       <label className="mt-8 block text-xs text-muted-foreground">
         邮箱

@@ -170,11 +170,9 @@ export function renderWebManifest(hostHeader) {
       background_color: "#000000",
       theme_color: "#000000",
       icons: [
-        {
-          src: "/__grok/icon-180.png",
-          sizes: "180x180",
-          type: "image/png",
-        },
+        { src: "/icons/icon-180.png", sizes: "180x180", type: "image/png" },
+        { src: "/icons/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+        { src: "/icons/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
       ],
     },
     null,
@@ -187,7 +185,7 @@ export function grokPwaHeadTags(appName = DEFAULT_APP_NAME) {
     // Standalone display comes from the manifest ("display": "standalone");
     // the legacy *-web-app-capable metas it replaces are deliberately absent.
     ["manifest", '<link rel="manifest" href="/__grok/manifest.webmanifest">'],
-    ["apple-touch-icon", '<link rel="apple-touch-icon" href="/__grok/icon-180.png">'],
+    ["apple-touch-icon", '<link rel="apple-touch-icon" href="/icons/icon-180.png">'],
     [
       "apple-mobile-web-app-title",
       `<meta name="apple-mobile-web-app-title" content="${escapeHtml(appName)}">`,
@@ -208,7 +206,11 @@ export function readGrokProjectId() {
 }
 
 export function readGrokExtensionsEnabled() {
-  const fromProcess = typeof process !== "undefined" ? process.env?.VITE_GROK_EXTENSIONS : "";
+  const env = typeof process !== "undefined" ? process.env : undefined;
+  // grok.com is blocked in mainland China, and Render production must not
+  // wait on that script. Local preview still loads it unless explicitly off.
+  if (env?.NODE_ENV === "production" || env?.RENDER === "true") return false;
+  const fromProcess = env?.VITE_GROK_EXTENSIONS;
   return String(fromProcess ?? "").trim() !== "0";
 }
 
@@ -451,7 +453,7 @@ export function injectGrokPwaHead(html, ctx = {}) {
   const missing = grokPwaHeadTags(appName)
     .filter(([key]) => {
       if (key === "manifest") return !next.includes('href="/__grok/manifest.webmanifest"');
-      if (key === "apple-touch-icon") return !next.includes('href="/__grok/icon-180.png"');
+      if (key === "apple-touch-icon") return !next.includes('href="/icons/icon-180.png"');
       return !next.includes(`name="${key}"`);
     })
     .map(([, tag]) => tag);

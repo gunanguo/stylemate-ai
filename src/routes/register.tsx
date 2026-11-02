@@ -63,7 +63,7 @@ function RegisterPage() {
         返回登录
       </Link>
       <p className="mt-8 text-xs font-medium text-muted-foreground">新账号</p>
-      <h1 className="mt-1 text-3xl font-medium italic">注册</h1>
+      <h1 className="mt-1 text-3xl font-semibold">注册</h1>
       <p className="mt-2 text-sm text-muted-foreground">建一个邮箱账号，再回到衣橱。</p>
       <label className="mt-8 block text-xs text-muted-foreground">
         名字
