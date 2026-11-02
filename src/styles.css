@@ -1,0 +1,99 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Plus Jakarta Sans", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
+  --color-background: oklch(97.8% 0.006 60);
+  --color-foreground: oklch(20% 0.006 50);
+  --color-card: oklch(99.5% 0.002 60);
+  --color-card-foreground: oklch(20% 0.006 50);
+  --color-primary: oklch(56% 0.16 38);
+  --color-primary-foreground: oklch(99% 0.004 60);
+  --color-secondary: oklch(94.5% 0.008 65);
+  --color-secondary-foreground: oklch(25% 0.008 50);
+  --color-muted: oklch(95% 0.007 65);
+  --color-muted-foreground: oklch(48% 0.012 55);
+  --color-accent: oklch(94% 0.03 45);
+  --color-accent-foreground: oklch(45% 0.14 38);
+  --color-destructive: oklch(55% 0.17 30);
+  --color-border: oklch(91.5% 0.008 60);
+  --color-ink: oklch(18% 0.004 50);
+  --color-ink-foreground: oklch(97% 0.004 60);
+  --color-success: oklch(42% 0.1 155);
+  --color-success-soft: oklch(95% 0.03 155);
+  --color-stage: oklch(94% 0.012 70);
+  --radius-lg: 1rem;
+  --shadow-soft: 0 1px 2px oklch(30% 0.02 50 / 0.04), 0 8px 24px -16px oklch(30% 0.02 50 / 0.18);
+  --shadow-float: 0 10px 24px -10px oklch(56% 0.16 38 / 0.45);
+}
+
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  html {
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--color-stage);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--color-accent);
+    color: var(--color-accent-foreground);
+  }
+}
+
+@layer components {
+  .eyebrow {
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .pb-safe {
+    padding-bottom: calc(0.65rem + env(safe-area-inset-bottom));
+  }
+
+  .aspect-look {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-rise {
+    animation: none;
+  }
+}
