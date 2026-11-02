@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRequireAccount } from "@/components/account-gate";
 import { Chip, LookCollage } from "@/components/closet-ui";
+import { OutfitSwap } from "@/components/outfit-swap";
 import { PageHeader } from "@/components/shell";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { authClient } from "@/lib/auth/client";
@@ -179,24 +180,13 @@ function StylePage() {
                   <h3 className="text-lg font-semibold">{live.name}</h3>
                   <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{live.note}</p>
                 </div>
-                <ul className="mt-3 space-y-1">
-                  {pieces.map((piece) => (
-                    <li key={piece.id} className="flex items-center justify-between text-sm">
-                      <span>
-                        {piece.name}
-                        <span className="text-muted-foreground"> · {piece.brand || piece.color}</span>
-                      </span>
-                      <span className={piece.owned ? "text-xs text-success" : "text-xs font-semibold text-primary"}>
-                        {piece.owned ? "已有" : "新品"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-2 text-xs font-semibold text-primary">
+                  {missing.length > 0 ? `差 ${missing.length} 件` : "全部来自衣橱"}
+                </p>
+                <OutfitSwap outfit={live} pieces={pieces} weather={weather} rain={!weatherTouched && forecast.rain} />
                 {missing.length > 0 ? (
                   <p className="mt-2 text-xs text-muted-foreground">补齐新品 {cny(missingPrice(pieces))}</p>
-                ) : (
-                  <p className="mt-2 text-xs text-success">全部来自你的衣橱</p>
-                )}
+                ) : null}
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"

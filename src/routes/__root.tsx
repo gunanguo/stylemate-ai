@@ -17,7 +17,7 @@ html.splash-seen #stylemate-splash{display:none !important;animation:none !impor
 
 const SPLASH_SEEN_SCRIPT = `(function(){try{if(sessionStorage.getItem(${JSON.stringify(SPLASH_KEY)})==="1")document.documentElement.classList.add("splash-seen")}catch(e){}})();`;
 
-const SPLASH_BOOT_SCRIPT = `(function(){var el=document.getElementById("stylemate-splash");if(!el)return;var key=${JSON.stringify(SPLASH_KEY)};if(document.documentElement.classList.contains("splash-seen")){el.remove();return;}var reduce=false;try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}setTimeout(function(){try{sessionStorage.setItem(key,"1")}catch(e){}document.documentElement.classList.add("splash-seen");if(el.parentNode)el.remove()},reduce?180:1120)})();`;
+const SPLASH_BOOT_SCRIPT = `(function(){var el=document.getElementById("stylemate-splash");if(!el)return;var key=${JSON.stringify(SPLASH_KEY)};if(document.documentElement.classList.contains("splash-seen"))return;var reduce=false;try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}setTimeout(function(){try{sessionStorage.setItem(key,"1")}catch(e){}document.documentElement.classList.add("splash-seen");if(el.parentNode)el.remove()},reduce?180:1120)})();`;
 
 export const Route = createRootRoute({
   head: () => ({

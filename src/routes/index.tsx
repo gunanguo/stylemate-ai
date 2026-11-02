@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useRequireAccount } from "@/components/account-gate";
 import { EmptyClosetCard, LookCollage, PiecePhoto, RemotePhoto, ShopLinks } from "@/components/closet-ui";
+import { OutfitSwap } from "@/components/outfit-swap";
 import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { buildNotices, markNoticesRead, readNoticeIds } from "@/lib/closet/notices";
 import { wearStats } from "@/lib/closet/stats";
@@ -214,15 +215,7 @@ function Home() {
                   </span>
                 ))}
               </div>
-              <ul className="no-scrollbar -mx-1 mt-4 flex gap-2 overflow-x-auto px-1">
-                {pieces.map((piece) => (
-                  <li key={piece.id} className="w-28 shrink-0 rounded-xl border border-border bg-background px-3 py-2">
-                    <p className="truncate text-xs text-muted-foreground">{piece.brand || "未填写品牌"}</p>
-                    <p className="truncate text-xs font-semibold">{piece.name}</p>
-                    {!piece.owned ? <p className="mt-0.5 text-xs font-semibold text-primary">新品</p> : null}
-                  </li>
-                ))}
-              </ul>
+              <OutfitSwap outfit={featured} pieces={pieces} weather={forecast.band} rain={forecast.rain} />
               <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
                 <div>
                   <p className="text-xs text-muted-foreground">{missing.length > 0 ? "补齐新品" : "这套都在衣橱里"}</p>

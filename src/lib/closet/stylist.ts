@@ -93,7 +93,7 @@ function namesForBatch(occasion: string, mood: string, count: number) {
   return names;
 }
 
-function noteFor(pieces: Garment[], weather: string, rain: boolean) {
+export function outfitNote(pieces: Garment[], weather: string, rain: boolean) {
   const names = pieces
     .filter((piece) => piece.slot !== "shoes" && piece.slot !== "bag" && piece.slot !== "extra")
     .slice(0, 2)
@@ -234,10 +234,56 @@ export function suggestOutfits(garments: Garment[], request: StyleRequest): Outf
     garmentIds: item.pieces.map((piece) => piece.id),
     score: 0,
     occasion: request.occasion,
-    note: noteFor(item.pieces, request.weather, Boolean(request.rain)),
+    note: outfitNote(item.pieces, request.weather, Boolean(request.rain)),
     saved: false,
     createdAt: 0,
   }));
+}
+
+/** Other closet items in the same category. Owned pieces come before 想买. */
+export function swapOptions(garments: Garment[], current: Garment, outfitIds: string[]) {
+  const taken = new Set(outfitIds.filter((id) => id !== current.id));
+  return garments
+    .filter((item) => item.category === current.category && item.id !== current.id && !taken.has(item.id))
+    .sort((a, b) => Number(b.owned) - Number(a.owned) || a.name.localeCompare(b.name, "zh-CN"));
+}
+
+export function swapGarment(
+  outfit: Outfit,
+  fromId: string,
+  to: Garment,
+  garments: Garment[],
+  weather: string,
+  rain: boolean,
+): Outfit {
+  const garmentIds = outfit.garmentIds.map((id) => (id === fromId ? to.id : id));
+  const pieces = garmentIds
+    .map((id) => (id === to.id ? to : garments.find((item) => item.id === id)))
+    .filter((item): item is Garment => Boolean(item));
+  return { ...outfit, garmentIds, note: outfitNote(pieces, weather, rain) };
+}
+
+/** A different full outfit, keeping the same id, name, and saved flag. */
+export function rerollOutfit(
+  outfit: Outfit,
+  garments: Garment[],
+  weather: string,
+  rain: boolean,
+  salt: number,
+): Outfit | null {
+  const options = suggestOutfits(garments, {
+    occasion: outfit.occasion || "日常",
+    mood: outfit.tags[0] || "简约",
+    weather,
+    rain,
+    salt,
+    preferred: [],
+    limit: 8,
+  });
+  const current = [...outfit.garmentIds].sort().join("-");
+  const next = options.find((item) => [...item.garmentIds].sort().join("-") !== current);
+  if (!next) return null;
+  return { ...outfit, garmentIds: [...next.garmentIds], note: next.note };
 }
 
 export function piecesOf(outfit: Outfit, garments: Garment[]) {

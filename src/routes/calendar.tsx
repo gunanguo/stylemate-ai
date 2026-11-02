@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useRequireAccount } from "@/components/account-gate";
 import { LookCollage } from "@/components/closet-ui";
+import { OutfitSwap } from "@/components/outfit-swap";
 import { PageHeader } from "@/components/shell";
 import { dateKey, daysInMonth, firstWeekday, shanghaiNow } from "@/lib/closet/dates";
 import { suggestLooks } from "@/lib/closet/suggest";
@@ -176,7 +177,18 @@ function CalendarPage() {
             <LookCollage pieces={pieces} />
             <div className="px-1 pt-3">
               <h3 className="text-lg font-semibold">{outfit.name}</h3>
-              <p className="mt-1 text-sm text-muted-foreground">{pieces.map((item) => item.name).join(" · ")}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{outfit.note}</p>
+              <p className="mt-1 text-xs font-semibold text-primary">
+                {pieces.filter((item) => !item.owned).length > 0
+                  ? `差 ${pieces.filter((item) => !item.owned).length} 件`
+                  : "全部来自衣橱"}
+              </p>
+              <OutfitSwap
+                outfit={outfit}
+                pieces={pieces}
+                weather={dayForecast?.band ?? forecast.band}
+                rain={dayForecast?.rain ?? forecast.rain}
+              />
               <button
                 type="button"
                 onClick={() => {
@@ -199,6 +211,14 @@ function CalendarPage() {
                   {todayRecommendation.name} · {todayPieces.map((item) => item.name).join(" · ")}
                 </p>
               </div>
+            </div>
+            <div className="px-1">
+              <OutfitSwap
+                outfit={todayRecommendation}
+                pieces={todayPieces}
+                weather={forecast.band}
+                rain={forecast.rain}
+              />
             </div>
             <button
               type="button"

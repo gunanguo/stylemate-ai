@@ -34,6 +34,7 @@ type Closet = ClosetData & {
   addShopping: (ids: string[]) => void;
   toggleSave: (id: string) => void;
   rememberOutfit: (outfit: Outfit) => void;
+  replaceOutfit: (outfit: Outfit) => void;
   wear: (date: string, outfitId: string) => void;
   clearDay: (date: string) => void;
   setDaily: (outfit: Outfit) => void;
@@ -319,6 +320,20 @@ export const useCloset = create<Closet>()((set, get) => {
         ? get().outfits.map((item) => (item.id === outfit.id ? outfit : item))
         : [outfit, ...get().outfits].slice(0, 48);
       update({ outfits });
+    },
+    replaceOutfit: (outfit) => {
+      const current = get().outfits.find((item) => item.id === outfit.id);
+      const next: Outfit = current
+        ? { ...current, garmentIds: [...outfit.garmentIds], note: outfit.note }
+        : { ...outfit, garmentIds: [...outfit.garmentIds] };
+      const outfits = current
+        ? get().outfits.map((item) => (item.id === next.id ? next : item))
+        : [next, ...get().outfits].slice(0, 48);
+      const wornItems = { ...get().wornItems };
+      for (const [date, id] of Object.entries(get().worn)) {
+        if (id === next.id) wornItems[date] = [...next.garmentIds];
+      }
+      update({ outfits, wornItems });
     },
     wear: (date, outfitId) => {
       const today = shanghaiNow().key;
