@@ -10,9 +10,12 @@ import { suggestLooks, type SuggestResult } from "@/lib/closet/suggest";
 import { useCloset } from "@/lib/closet/store";
 import { missingPrice, piecesOf, suggestOutfits } from "@/lib/closet/stylist";
 import { MOODS, OCCASIONS, WEATHERS, type Garment, type Outfit } from "@/lib/closet/types";
-import { useLiveWeather } from "@/lib/closet/weather";
+import { loadWeather, useLiveWeather } from "@/lib/closet/weather";
 
-export const Route = createFileRoute("/style")({ component: StylePage });
+export const Route = createFileRoute("/style")({
+  loader: () => loadWeather("上海"),
+  component: StylePage,
+});
 
 function StylePage() {
   const garments = useCloset((state) => state.garments);
@@ -25,7 +28,7 @@ function StylePage() {
   const outfits = useCloset((state) => state.outfits);
   const [occasion, setOccasion] = useState<string>("上班");
   const [mood, setMood] = useState<string>("优雅");
-  const forecast = useLiveWeather(profile.city);
+  const forecast = useLiveWeather(profile.city, Route.useLoaderData());
   const [weather, setWeather] = useState<string>(forecast.band);
   const [weatherTouched, setWeatherTouched] = useState(false);
   const [results, setResults] = useState<Outfit[]>([]);

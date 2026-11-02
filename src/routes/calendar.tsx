@@ -10,7 +10,7 @@ import { suggestLooks } from "@/lib/closet/suggest";
 import { useCloset } from "@/lib/closet/store";
 import { piecesOf, suggestOutfits } from "@/lib/closet/stylist";
 import type { Garment } from "@/lib/closet/types";
-import { useLiveWeather } from "@/lib/closet/weather";
+import { dayForecastCaption, loadWeather, useLiveWeather } from "@/lib/closet/weather";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
@@ -30,7 +30,10 @@ function slimGarments(garments: Garment[]) {
   }));
 }
 
-export const Route = createFileRoute("/calendar")({ component: CalendarPage });
+export const Route = createFileRoute("/calendar")({
+  loader: () => loadWeather("上海"),
+  component: CalendarPage,
+});
 
 function CalendarPage() {
   const now = shanghaiNow();
@@ -44,11 +47,13 @@ function CalendarPage() {
   const clearDay = useCloset((state) => state.clearDay);
   const bumpSalt = useCloset((state) => state.bumpSalt);
   const rememberOutfit = useCloset((state) => state.rememberOutfit);
+  const dailyDate = useCloset((state) => state.dailyDate);
   const dailyOutfitId = useCloset((state) => state.dailyOutfitId);
   const ask = useServerFn(suggestLooks);
   const [planning, setPlanning] = useState(false);
-  const forecast = useLiveWeather(profile.city);
+  const forecast = useLiveWeather(profile.city, Route.useLoaderData());
   const dayForecast = forecast.days.find((day) => day.date === selected);
+  const forecastCaption = dayForecastCaption(selected, forecast.days);
 
   const count = daysInMonth(cursor.year, cursor.month);
   const offset = firstWeekday(cursor.year, cursor.month);
@@ -57,6 +62,13 @@ function CalendarPage() {
   const outfit = outfits.find((item) => item.id === outfitId);
   const pieces = outfit ? piecesOf(outfit, garments) : [];
   const saved = outfits.filter((item) => item.saved && piecesOf(item, garments).length > 0);
+  const todayRecommendation =
+    selected === now.key && !(outfit && pieces.length > 0)
+      ? (outfits.find((item) => item.id === (dailyDate === now.key ? dailyOutfitId : "look-commute")) ??
+        saved[0] ??
+        outfits[0])
+      : undefined;
+  const todayPieces = todayRecommendation ? piecesOf(todayRecommendation, garments) : [];
 
   function shift(delta: number) {
     setCursor((current) => {
@@ -154,9 +166,7 @@ function CalendarPage() {
 
       <section className="px-5 pt-6">
         <h2 className="text-sm font-semibold">{selected === now.key ? "今天" : selected}</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          {dayForecast ? dayForecast.label : "这一天还没有预报，会按凉爽来配"}
-        </p>
+        {forecastCaption ? <p className="mt-1 text-xs text-muted-foreground">{forecastCaption}</p> : null}
         {outfit && pieces.length > 0 ? (
           <article className="mt-3 overflow-hidden rounded-3xl border border-border bg-card p-3">
             <LookCollage pieces={pieces} />
@@ -174,6 +184,25 @@ function CalendarPage() {
                 清除
               </button>
             </div>
+          </article>
+        ) : selected === now.key && todayRecommendation && todayPieces.length > 0 ? (
+          <article className="mt-3 overflow-hidden rounded-3xl border border-dashed border-border bg-card">
+            <div className="opacity-60">
+              <LookCollage pieces={todayPieces} />
+              <div className="px-1 pt-3">
+                <h3 className="text-lg font-semibold">今日推荐（未安排）</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {todayRecommendation.name} · {todayPieces.map((item) => item.name).join(" · ")}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => plan(todayRecommendation.id)}
+              className="mt-3 min-h-11 px-1 text-sm font-semibold text-primary"
+            >
+              安排
+            </button>
           </article>
         ) : (
           <p className="mt-2 text-sm text-muted-foreground">这一天还没有造型。</p>

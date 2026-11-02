@@ -53,16 +53,31 @@ const HINT: Record<WeatherBand, string> = {
   寒冷: "记得外套",
 };
 
-export const FALLBACK_WEATHER: LiveWeather = {
-  band: "凉爽",
-  label: "暂时取不到当地天气，按凉爽搭配",
-  advice: ADVICE.凉爽,
-  live: false,
-  source: "",
-  rain: false,
-  city: "上海",
-  days: [],
-};
+export function fallbackWeather(city = "上海"): LiveWeather {
+  const name = city.trim() || "上海";
+  return {
+    band: "凉爽",
+    label: `${name} · 按凉爽搭配`,
+    advice: ADVICE.凉爽,
+    live: false,
+    source: "",
+    rain: false,
+    city: name,
+    days: [],
+  };
+}
+
+/** @deprecated Use `fallbackWeather` so the city in the sentence stays honest. */
+export const FALLBACK_WEATHER: LiveWeather = fallbackWeather("上海");
+
+/** Label for one calendar day. `暂无预报` only after the last day we actually have. */
+export function dayForecastCaption(selected: string, days: DayForecast[]): string | null {
+  const found = days.find((day) => day.date === selected);
+  if (found) return found.label;
+  const last = days.reduce((end, day) => (day.date > end ? day.date : end), "");
+  if (!last || selected > last) return "暂无预报";
+  return null;
+}
 
 type Place = { latitude: number; longitude: number; city: string };
 
@@ -139,9 +154,12 @@ function describe(city: string, temperature: number, sky: string, source: string
   };
 }
 
-async function readJson(url: string, headers?: HeadersInit) {
-  const response = await fetch(url, { headers, signal: AbortSignal.timeout(8000) });
-  if (!response.ok) throw new Error(String(response.status));
+async function readJson(url: string, headers?: HeadersInit, timeoutMs = 8000) {
+  const response = await fetch(url, { headers, signal: AbortSignal.timeout(timeoutMs) });
+  if (!response.ok) {
+    const text = await response.text().catch(() => "");
+    throw new Error(`${response.status} ${text.slice(0, 300)}`.trim());
+  }
   return response.json() as Promise<unknown>;
 }
 
@@ -219,6 +237,16 @@ async function fromWttr(place: Place) {
   return current ? { current, days } : null;
 }
 
+async function readOpenMeteo(url: string) {
+  try {
+    return await readJson(url, { "User-Agent": USER_AGENT, Accept: "application/json" }, 12_000);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[weather] Open-Meteo ${message}`);
+    throw error;
+  }
+}
+
 async function fromOpenMeteo(place: Place) {
   const url = new URL("https://api.open-meteo.com/v1/forecast");
   url.searchParams.set("latitude", String(place.latitude));
@@ -226,8 +254,9 @@ async function fromOpenMeteo(place: Place) {
   url.searchParams.set("current", "temperature_2m,weather_code");
   url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum");
   url.searchParams.set("timezone", CHINA_TIME_ZONE);
-  url.searchParams.set("forecast_days", "14");
-  const body = (await readJson(url.toString())) as {
+  url.searchParams.set("forecast_days", "7");
+  const href = url.toString();
+  let body: {
     current?: { temperature_2m?: number; weather_code?: number };
     daily?: {
       time?: string[];
@@ -237,19 +266,38 @@ async function fromOpenMeteo(place: Place) {
       precipitation_sum?: number[];
     };
   };
-  const temperature = Number(body.current?.temperature_2m);
-  const code = Number(body.current?.weather_code);
+  try {
+    body = (await readOpenMeteo(href)) as typeof body;
+  } catch (error) {
+    console.error(
+      "[weather] Open-Meteo retrying once",
+      error instanceof Error ? error.message : error,
+    );
+    body = (await readOpenMeteo(href)) as typeof body;
+  }
+  const parsed = body as {
+    current?: { temperature_2m?: number; weather_code?: number };
+    daily?: {
+      time?: string[];
+      weather_code?: number[];
+      temperature_2m_max?: number[];
+      temperature_2m_min?: number[];
+      precipitation_sum?: number[];
+    };
+  };
+  const temperature = Number(parsed.current?.temperature_2m);
+  const code = Number(parsed.current?.weather_code);
   const rain = isRainCode(code);
   const current = Number.isFinite(temperature)
     ? describe(place.city, temperature, skyFromCode(code), "Open-Meteo", rain)
     : null;
-  const days: DayForecast[] = (body.daily?.time ?? []).flatMap((date, index) => {
-    const max = Number(body.daily?.temperature_2m_max?.[index]);
-    const min = Number(body.daily?.temperature_2m_min?.[index]);
+  const days: DayForecast[] = (parsed.daily?.time ?? []).flatMap((date, index) => {
+    const max = Number(parsed.daily?.temperature_2m_max?.[index]);
+    const min = Number(parsed.daily?.temperature_2m_min?.[index]);
     const mid = Number.isFinite(max) && Number.isFinite(min) ? (max + min) / 2 : max;
     if (!date || !Number.isFinite(mid)) return [];
-    const dayCode = Number(body.daily?.weather_code?.[index]);
-    const precip = Number(body.daily?.precipitation_sum?.[index]);
+    const dayCode = Number(parsed.daily?.weather_code?.[index]);
+    const precip = Number(parsed.daily?.precipitation_sum?.[index]);
     const dayRain = (Number.isFinite(precip) && precip >= 1) || isRainCode(dayCode);
     return [
       {
@@ -274,54 +322,74 @@ export const fetchForecast = createServerFn({ method: "POST" })
     }
     return { latitude, longitude, city };
   })
-  .handler(async ({ data }): Promise<LiveWeather> => {
-    // Open-Meteo needs no API key. The other two are only used when it fails.
-    const [open, wttr, met] = await Promise.allSettled([
-      fromOpenMeteo(data),
-      fromWttr(data),
-      fromMetNorway(data),
-    ]);
-    const openValue = open.status === "fulfilled" ? open.value : null;
-    const wttrValue = wttr.status === "fulfilled" ? wttr.value : null;
-    const metValue = met.status === "fulfilled" ? met.value : null;
-    const picked = openValue?.current ? openValue : wttrValue?.current ? wttrValue : metValue;
-    if (!picked?.current) return { ...FALLBACK_WEATHER, city: data.city };
-    const days = openValue?.days.length ? openValue.days : picked.days;
-    const today = days.find(
-      (day) => day.date === new Intl.DateTimeFormat("en-CA", { timeZone: CHINA_TIME_ZONE }).format(new Date()),
-    );
-    return { ...picked.current, days, rain: today?.rain ?? picked.current.rain };
-  });
+  .handler(async ({ data }): Promise<LiveWeather> => resolveForecast(data));
+
+/** Server forecast. Cached about 30 minutes per city. No API key. */
+export async function resolveForecast(place: Place): Promise<LiveWeather> {
+  const hit = caches.get(place.city);
+  if (hit && Date.now() - hit.at < TTL) return hit.value;
+  // Open-Meteo needs no API key. wttr.in and MET Norway are only used when it fails.
+  const [open, wttr, met] = await Promise.allSettled([
+    fromOpenMeteo(place),
+    fromWttr(place),
+    fromMetNorway(place),
+  ]);
+  if (open.status === "rejected") {
+    console.error("[weather] Open-Meteo gave up", open.reason instanceof Error ? open.reason.message : open.reason);
+  }
+  const openValue = open.status === "fulfilled" ? open.value : null;
+  const wttrValue = wttr.status === "fulfilled" ? wttr.value : null;
+  const metValue = met.status === "fulfilled" ? met.value : null;
+  const picked = openValue?.current ? openValue : wttrValue?.current ? wttrValue : metValue;
+  if (!picked?.current) return fallbackWeather(place.city);
+  const days = openValue?.days.length ? openValue.days : picked.days;
+  const today = days.find(
+    (day) => day.date === new Intl.DateTimeFormat("en-CA", { timeZone: CHINA_TIME_ZONE }).format(new Date()),
+  );
+  const value = { ...picked.current, days, rain: today?.rain ?? picked.current.rain };
+  caches.set(place.city, { at: Date.now(), value });
+  return value;
+}
 
 export async function loadWeather(cityName: string): Promise<LiveWeather> {
   const city = cityByName(cityName);
+  const place = { latitude: city.latitude, longitude: city.longitude, city: city.name };
+  if (typeof window === "undefined") return resolveForecast(place);
   const hit = caches.get(city.name);
   if (hit && Date.now() - hit.at < TTL) return hit.value;
   try {
-    const value = await fetchForecast({
-      data: { latitude: city.latitude, longitude: city.longitude, city: city.name },
-    });
-    if (!value.live) return hit?.value ?? { ...FALLBACK_WEATHER, city: city.name };
+    const value = await fetchForecast({ data: place });
+    if (!value.live) return hit?.value ?? fallbackWeather(city.name);
     caches.set(city.name, { at: Date.now(), value });
     return value;
   } catch {
-    return hit?.value ?? { ...FALLBACK_WEATHER, city: city.name };
+    return hit?.value ?? fallbackWeather(city.name);
   }
 }
 
-export function useLiveWeather(cityName: string) {
+export function useLiveWeather(cityName: string, initial?: LiveWeather | null) {
   const city = cityByName(cityName).name;
-  const [weather, setWeather] = useState<LiveWeather>(caches.get(city)?.value ?? { ...FALLBACK_WEATHER, city });
+  const seeded = initial && initial.city === city ? initial : undefined;
+  const [weather, setWeather] = useState<LiveWeather>(
+    seeded ?? caches.get(city)?.value ?? fallbackWeather(city),
+  );
 
   useEffect(() => {
     let cancelled = false;
+    if (seeded?.live) {
+      const hit = caches.get(city);
+      if (!hit) caches.set(city, { at: Date.now(), value: seeded });
+      return () => {
+        cancelled = true;
+      };
+    }
     void loadWeather(city).then((value) => {
       if (!cancelled) setWeather(value);
     });
     return () => {
       cancelled = true;
     };
-  }, [city]);
+  }, [city, seeded]);
 
   return weather;
 }

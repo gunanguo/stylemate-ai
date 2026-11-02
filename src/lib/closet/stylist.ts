@@ -55,24 +55,42 @@ function wantsOuter(weather: string, rain: boolean) {
   return rain || weather === "凉爽" || weather === "寒冷";
 }
 
-function titleFor(pieces: Garment[], occasion: string, mood: string) {
-  const ids = new Set(pieces.map((piece) => piece.id));
-  if (ids.has("blazer") && ids.has("knit")) return "温柔通勤风";
-  if (ids.has("trench") && ids.has("skirt")) return "风衣与半裙";
-  if (ids.has("dress")) return "夜色简笔";
-  if (ids.has("denim")) return "周末叠穿";
-  if (ids.has("shirt") && ids.has("black-pants")) return "黑白利落";
-  if (ids.has("skirt")) return "半裙午后";
-  if (ids.has("trench")) return "风衣漫步";
-  const moodWord: Record<string, string> = {
-    休闲: "松弛",
-    优雅: "温柔",
-    自信: "利落",
-    甜美: "柔和",
-    酷飒: "干净",
-    简约: "安静",
-  };
-  return `${moodWord[mood] ?? "今日"}${occasion}`;
+const SEED_LOOK_NAMES = new Set(["温柔通勤风", "黑白利落", "夜色简笔", "周末叠穿", "风衣与半裙"]);
+
+const MOOD_WORD: Record<string, string> = {
+  休闲: "松弛",
+  优雅: "温柔",
+  自信: "利落",
+  甜美: "柔和",
+  酷飒: "干净",
+  简约: "安静",
+};
+
+/** Occasion words. 上班 stays on the commute side of the wardrobe. */
+const OCCASION_WORD: Record<string, string[]> = {
+  上班: ["通勤", "开会", "办公"],
+  日常: ["出门", "散步", "日常"],
+  约会: ["赴约", "晚餐", "傍晚"],
+  聚会: ["入席", "聚会", "灯光"],
+  旅行: ["出发", "旅途", "轻装"],
+  运动: ["活动", "伸展", "快走"],
+};
+
+function namesForBatch(occasion: string, mood: string, count: number) {
+  const words = OCCASION_WORD[occasion] ?? OCCASION_WORD.日常;
+  const moodWord = MOOD_WORD[mood] ?? "今日";
+  const names: string[] = [];
+  for (let index = 0; index < count; index += 1) {
+    const word = words[index % words.length] ?? "出门";
+    let name = `${moodWord}${word}`;
+    let extra = 2;
+    while (names.includes(name) || SEED_LOOK_NAMES.has(name)) {
+      name = `${moodWord}${word}${extra}`;
+      extra += 1;
+    }
+    names.push(name);
+  }
+  return names;
 }
 
 function noteFor(pieces: Garment[], weather: string, rain: boolean) {
@@ -208,9 +226,10 @@ export function suggestOutfits(garments: Garment[], request: StyleRequest): Outf
     if (unique.length >= (request.limit ?? 3)) break;
   }
 
+  const names = namesForBatch(request.occasion, request.mood, unique.length);
   return unique.map((item, index) => ({
     id: `gen-${request.salt}-${index}-${hash(item.signature).toString(36)}`,
-    name: titleFor(item.pieces, request.occasion, request.mood),
+    name: names[index] ?? `${request.mood}${request.occasion}`,
     tags: [request.mood, request.occasion === "上班" ? "通勤" : request.occasion],
     garmentIds: item.pieces.map((piece) => piece.id),
     score: 0,

@@ -377,7 +377,7 @@ export function GarmentSheet({
       return;
     }
     if (result.warning) toast(result.warning);
-    else if (editing) toast("修改已保存");
+    else if (editing) toast("修改已保存", { id: "closet-edit" });
     else toast(`「${next.name}」已放入衣橱`);
     onClose();
   }

@@ -77,8 +77,7 @@ function WardrobePage() {
         <>
       <div className="flex items-end justify-between px-5 pt-2">
         <p className="text-sm text-muted-foreground">
-          共 {ownedCount} 件衣物
-          {garments.length !== ownedCount ? ` · ${garments.length - ownedCount} 件想买` : ""}
+          已有 {ownedCount} 件 · 想买 {wishCount} 件
         </p>
         <button
           type="button"
@@ -225,7 +224,8 @@ function WardrobePage() {
                         toast(result.error);
                         return;
                       }
-                      toast(result.warning ?? `「${detail.name}」已删除`);
+                      toast.dismiss();
+                      toast(`「${detail.name}」已删除`);
                       setDetail(null);
                       setConfirming(false);
                     }}

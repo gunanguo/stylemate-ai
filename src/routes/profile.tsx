@@ -23,7 +23,6 @@ function ProfilePage() {
   const outfits = useCloset((state) => state.outfits);
   const worn = useCloset((state) => state.worn);
   const wornItems = useCloset((state) => state.wornItems);
-  const shopping = useCloset((state) => state.shopping);
   const markOwned = useCloset((state) => state.markOwned);
   const toggleShopping = useCloset((state) => state.toggleShopping);
   const importCloset = useCloset((state) => state.importCloset);
@@ -115,7 +114,7 @@ function ProfilePage() {
           使用我的位置
         </button>
 
-        <ShoppingList garments={garments} shopping={shopping} onBought={markOwned} onRemove={toggleShopping} />
+        <ShoppingList garments={garments} onBought={markOwned} onRemove={toggleShopping} />
 
         <IdleList garments={garments} wornItems={wornItems} today={today} />
 
@@ -243,18 +242,19 @@ function downloadCloset(state: ClosetData) {
 
 function ShoppingList({
   garments,
-  shopping,
   onBought,
   onRemove,
 }: {
   garments: Garment[];
-  shopping: string[];
   onBought: (id: string) => void;
   onRemove: (id: string) => void;
 }) {
-  const items = shopping
-    .map((id) => garments.find((item) => item.id === id))
-    .filter((item): item is Garment => item != null && !item.owned);
+  const seen = new Set<string>();
+  const items = garments.filter((item) => {
+    if (item.owned || seen.has(item.id)) return false;
+    seen.add(item.id);
+    return true;
+  });
   return (
     <section className="mt-8">
       <h2 className="text-sm font-semibold">购买清单</h2>

@@ -249,9 +249,23 @@ export const useCloset = create<Closet>()((set, get) => {
 
   return {
     ...freshData(),
-    addGarment: (garment) => update({ garments: [garment, ...get().garments] }),
+    addGarment: (garment) =>
+      update({
+        garments: [garment, ...get().garments],
+        shopping:
+          garment.owned || get().shopping.includes(garment.id)
+            ? get().shopping
+            : [garment.id, ...get().shopping],
+      }),
     updateGarment: (garment) =>
-      update({ garments: get().garments.map((item) => (item.id === garment.id ? garment : item)) }),
+      update({
+        garments: get().garments.map((item) => (item.id === garment.id ? garment : item)),
+        shopping: garment.owned
+          ? get().shopping.filter((item) => item !== garment.id)
+          : get().shopping.includes(garment.id)
+            ? get().shopping
+            : [garment.id, ...get().shopping],
+      }),
     removeGarment: (id) =>
       update({
         garments: get().garments.filter((item) => item.id !== id),
@@ -276,9 +290,11 @@ export const useCloset = create<Closet>()((set, get) => {
           : [id, ...get().shopping],
       }),
     addShopping: (ids) => {
+      const owned = new Set(get().garments.filter((item) => item.owned).map((item) => item.id));
       const shopping = [...get().shopping];
       for (const id of ids) {
-        if (!shopping.includes(id)) shopping.push(id);
+        if (!id || owned.has(id) || shopping.includes(id)) continue;
+        shopping.push(id);
       }
       return update({ shopping });
     },

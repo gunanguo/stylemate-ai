@@ -9,9 +9,12 @@ import { wearStats } from "@/lib/closet/stats";
 import { useCloset } from "@/lib/closet/store";
 import { isComplete, missingPrice, piecesOf } from "@/lib/closet/stylist";
 import type { Garment } from "@/lib/closet/types";
-import { useLiveWeather } from "@/lib/closet/weather";
+import { loadWeather, useLiveWeather } from "@/lib/closet/weather";
 
-export const Route = createFileRoute("/")({ component: Home });
+export const Route = createFileRoute("/")({
+  loader: () => loadWeather("上海"),
+  component: Home,
+});
 
 function Home() {
   const navigate = useNavigate();
@@ -26,10 +29,9 @@ function Home() {
   const markOwned = useCloset((state) => state.markOwned);
   const addShopping = useCloset((state) => state.addShopping);
   const wornItems = useCloset((state) => state.wornItems);
-  const shopping = useCloset((state) => state.shopping);
   const [panel, setPanel] = useState<"notice" | "buy" | null>(null);
   const now = shanghaiNow();
-  const forecast = useLiveWeather(profile.city);
+  const forecast = useLiveWeather(profile.city, Route.useLoaderData());
 
   const owned = garments.filter((item) => item.owned);
   const saved = outfits.filter((item) => item.saved && piecesOf(item, garments).length > 0);
@@ -73,7 +75,7 @@ function Home() {
     forecastAdvice: forecast.advice,
     missingNames: missing.map((item) => item.name),
     idle,
-    shoppingCount: shopping.length,
+    shoppingCount: garments.filter((item, index, list) => !item.owned && list.findIndex((other) => other.id === item.id) === index).length,
   });
   const unread = readIds ? notices.filter((notice) => !readIds.includes(notice.id)) : [];
 
