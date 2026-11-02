@@ -1,10 +1,23 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { AuthProvider } from "@/lib/auth/provider";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Shell } from "@/components/shell";
 import appCss from "../styles.css?url";
 
 const APP_NAME = "StyleMate AI — 你的衣橱造型师";
+const SPLASH_KEY = "stylemate-splash";
+
+const SPLASH_CSS = `
+#stylemate-splash{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;background:#f7f3ee;color:#2c2825;opacity:1;animation:stylemate-splash-out .3s ease .8s forwards}
+@keyframes stylemate-splash-out{from{opacity:1}to{opacity:0;visibility:hidden}}
+html.splash-seen #stylemate-splash{display:none !important;animation:none !important}
+@media (prefers-reduced-motion: reduce){#stylemate-splash{animation:none}}
+`;
+
+const SPLASH_SEEN_SCRIPT = `(function(){try{if(sessionStorage.getItem(${JSON.stringify(SPLASH_KEY)})==="1")document.documentElement.classList.add("splash-seen")}catch(e){}})();`;
+
+const SPLASH_BOOT_SCRIPT = `(function(){var el=document.getElementById("stylemate-splash");if(!el)return;var key=${JSON.stringify(SPLASH_KEY)};if(document.documentElement.classList.contains("splash-seen")){el.remove();return;}var reduce=false;try{reduce=matchMedia("(prefers-reduced-motion: reduce)").matches}catch(e){}setTimeout(function(){try{sessionStorage.setItem(key,"1")}catch(e){}document.documentElement.classList.add("splash-seen");if(el.parentNode)el.remove()},reduce?180:1120)})();`;
 
 export const Route = createRootRoute({
   head: () => ({
@@ -31,12 +44,86 @@ export const Route = createRootRoute({
       { rel: "apple-touch-startup-image", href: "/splash-startup.png" },
     ],
   }),
-  component: () => (
-    <html lang="zh-CN" suppressHydrationWarning>
+  component: RootDocument,
+});
+
+function RootDocument() {
+  const [splash, setSplash] = useState(true);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const seen = document.documentElement.classList.contains("splash-seen");
+    if (seen) {
+      setSplash(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setSplash(false), reduce ? 180 : 1120);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  return (
+    <html
+      lang="zh-CN"
+      suppressHydrationWarning
+      className={
+        typeof document !== "undefined" && document.documentElement.classList.contains("splash-seen")
+          ? "splash-seen"
+          : undefined
+      }
+    >
       <head>
+        <script dangerouslySetInnerHTML={{ __html: SPLASH_SEEN_SCRIPT }} />
+        <style dangerouslySetInnerHTML={{ __html: SPLASH_CSS }} />
         <HeadContent />
       </head>
       <body>
+        {splash ? (
+          <div
+            id="stylemate-splash"
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 80,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "#f7f3ee",
+              color: "#2c2825",
+              opacity: 1,
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                fontFamily: '"Plus Jakarta Sans","PingFang SC","Noto Sans SC",sans-serif',
+              }}
+            >
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: "1.875rem",
+                  fontWeight: 600,
+                  fontStyle: "italic",
+                  letterSpacing: "-0.02em",
+                  lineHeight: 1.2,
+                }}
+              >
+                StyleMate <span style={{ color: "#c45c32" }}>AI</span>
+              </p>
+              <p
+                style={{
+                  margin: "0.75rem 0 0",
+                  fontSize: "0.875rem",
+                  fontStyle: "normal",
+                  fontWeight: 500,
+                  color: "#4a453f",
+                }}
+              >
+                懂你衣橱的穿搭助理
+              </p>
+            </div>
+          </div>
+        ) : null}
+        <script dangerouslySetInnerHTML={{ __html: SPLASH_BOOT_SCRIPT }} />
         <PreviewHostBridge />
         <AuthProvider>
           <Shell>
@@ -46,5 +133,5 @@ export const Route = createRootRoute({
         <Scripts />
       </body>
     </html>
-  ),
-});
+  );
+}
