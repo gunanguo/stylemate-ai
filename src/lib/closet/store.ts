@@ -81,9 +81,15 @@ function rebaseLegacySeedDates(data: ClosetData, now = new Date()): ClosetData {
   let garmentChanged = false;
   const garments = data.garments.map((garment) => {
     const index = legacySeedIndex(garment.id);
-    if (index == null || garment.addedAt !== LEGACY_SEED_ADDED_AT + index) return garment;
-    garmentChanged = true;
-    return { ...garment, addedAt: seedAddedAt(index, now) };
+    if (index == null) return garment;
+    let next = garment;
+    const svg = `/wardrobe/${garment.id}.svg`;
+    if (garment.image === svg) next = { ...next, image: `/wardrobe/${garment.id}.jpg` };
+    if (garment.addedAt === LEGACY_SEED_ADDED_AT + index) {
+      next = { ...next, addedAt: seedAddedAt(index, now) };
+    }
+    if (next !== garment) garmentChanged = true;
+    return next;
   });
   const legacyWorn =
     data.worn["2026-10-29"] === "look-denim" &&

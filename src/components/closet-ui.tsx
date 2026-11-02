@@ -1,6 +1,6 @@
 import { useServerFn } from "@tanstack/react-start";
 import { Camera, ImagePlus, Plus, Sparkles, X } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { COLOR_HEX } from "@/lib/closet/catalog";
 import { shopLinks } from "@/lib/closet/shop";
@@ -39,16 +39,33 @@ export function PiecePhoto({
   garment: Pick<Garment, "name" | "image" | "hex">;
   className?: string;
 }) {
-  if (garment.image) {
-    return <img src={garment.image} alt={garment.name} className={cn("h-full w-full object-cover", className)} />;
+  const [src, setSrc] = useState(garment.image);
+  useEffect(() => {
+    setSrc(garment.image);
+  }, [garment.image]);
+  if (!src) {
+    return (
+      <div
+        className={cn("flex h-full w-full items-center justify-center text-sm font-semibold", className)}
+        style={{ backgroundColor: garment.hex, color: "#2c2825" }}
+      >
+        {garment.name.slice(0, 1)}
+      </div>
+    );
   }
   return (
-    <div
-      className={cn("flex h-full w-full items-center justify-center text-sm font-semibold", className)}
-      style={{ backgroundColor: garment.hex, color: "#2c2825" }}
-    >
-      {garment.name.slice(0, 1)}
-    </div>
+    <img
+      src={src}
+      alt={garment.name}
+      className={cn("h-full w-full object-cover", className)}
+      onError={() => {
+        if (src.startsWith("/wardrobe/") && src.endsWith(".jpg")) {
+          setSrc(src.replace(/\.jpg$/, ".svg"));
+          return;
+        }
+        setSrc("");
+      }}
+    />
   );
 }
 
