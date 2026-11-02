@@ -3,6 +3,7 @@ import { Camera, ImagePlus, Plus, Sparkles, X } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { COLOR_HEX } from "@/lib/closet/catalog";
+import { shopLinks } from "@/lib/closet/shop";
 import { dominantColor } from "@/lib/closet/palette";
 import { recognizeGarment } from "@/lib/closet/recognize";
 import { useCloset } from "@/lib/closet/store";
@@ -77,6 +78,30 @@ export function LookCollage({ pieces }: { pieces: Garment[] }) {
   );
 }
 
+export function ShopLinks({
+  item,
+  className,
+}: {
+  item: { name: string; brand: string };
+  className?: string;
+}) {
+  return (
+    <span className={cn("flex shrink-0 gap-2", className)}>
+      {shopLinks(item).map((link) => (
+        <a
+          key={link.label}
+          href={link.href}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-11 items-center text-sm font-semibold text-primary"
+        >
+          {link.label}
+        </a>
+      ))}
+    </span>
+  );
+}
+
 export function Chip({
   active,
   children,
@@ -102,7 +127,7 @@ export function Chip({
   );
 }
 
-async function compressImage(file: File) {
+export async function compressGarmentPhoto(file: File) {
   const url = URL.createObjectURL(file);
   try {
     const img = await new Promise<HTMLImageElement>((resolve, reject) => {
@@ -199,7 +224,7 @@ export function GarmentSheet({
     if (!file) return;
     setReading(true);
     try {
-      const image = await compressImage(file);
+      const image = await compressGarmentPhoto(file);
       setDraft((current) => ({ ...current, image }));
     } catch (error) {
       toast(error instanceof Error ? error.message : "无法读取这张照片，请换一张试试");
@@ -472,12 +497,12 @@ export function GarmentSheet({
         </div>
 
         <label className="mt-4 block text-xs font-medium text-muted-foreground">
-          价格（NT$）
+          价格（元）
           <input
             inputMode="numeric"
             value={draft.price}
             onChange={(event) => setDraft((current) => ({ ...current, price: event.target.value }))}
-            placeholder="2490"
+            placeholder="399"
             className="mt-1.5 w-full rounded-xl border border-border bg-card px-3 py-3 text-sm outline-none"
           />
         </label>

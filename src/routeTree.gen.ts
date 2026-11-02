@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AskRouteImport } from './routes/ask'
 import { Route as CalendarRouteImport } from './routes/calendar'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ProfileRouteImport } from './routes/profile'
@@ -17,10 +18,16 @@ import { Route as RegisterRouteImport } from './routes/register'
 import { Route as StyleRouteImport } from './routes/style'
 import { Route as WardrobeRouteImport } from './routes/wardrobe'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiClosetImagesGarmentIdRouteImport } from './routes/api/closet/images/$garmentId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AskRoute = AskRouteImport.update({
+  id: '/ask',
+  path: '/ask',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CalendarRoute = CalendarRouteImport.update({
@@ -58,9 +65,16 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiClosetImagesGarmentIdRoute =
+  ApiClosetImagesGarmentIdRouteImport.update({
+    id: '/api/closet/images/$garmentId',
+    path: '/api/closet/images/$garmentId',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/ask': typeof AskRoute
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
@@ -68,9 +82,11 @@ export interface FileRoutesByFullPath {
   '/style': typeof StyleRoute
   '/wardrobe': typeof WardrobeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/closet/images/$garmentId': typeof ApiClosetImagesGarmentIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/ask': typeof AskRoute
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
@@ -78,10 +94,12 @@ export interface FileRoutesByTo {
   '/style': typeof StyleRoute
   '/wardrobe': typeof WardrobeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/closet/images/$garmentId': typeof ApiClosetImagesGarmentIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/ask': typeof AskRoute
   '/calendar': typeof CalendarRoute
   '/login': typeof LoginRoute
   '/profile': typeof ProfileRoute
@@ -89,11 +107,13 @@ export interface FileRoutesById {
   '/style': typeof StyleRoute
   '/wardrobe': typeof WardrobeRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/closet/images/$garmentId': typeof ApiClosetImagesGarmentIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ask'
     | '/calendar'
     | '/login'
     | '/profile'
@@ -101,9 +121,11 @@ export interface FileRouteTypes {
     | '/style'
     | '/wardrobe'
     | '/api/auth/$'
+    | '/api/closet/images/$garmentId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/ask'
     | '/calendar'
     | '/login'
     | '/profile'
@@ -111,9 +133,11 @@ export interface FileRouteTypes {
     | '/style'
     | '/wardrobe'
     | '/api/auth/$'
+    | '/api/closet/images/$garmentId'
   id:
     | '__root__'
     | '/'
+    | '/ask'
     | '/calendar'
     | '/login'
     | '/profile'
@@ -121,10 +145,12 @@ export interface FileRouteTypes {
     | '/style'
     | '/wardrobe'
     | '/api/auth/$'
+    | '/api/closet/images/$garmentId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AskRoute: typeof AskRoute
   CalendarRoute: typeof CalendarRoute
   LoginRoute: typeof LoginRoute
   ProfileRoute: typeof ProfileRoute
@@ -132,6 +158,7 @@ export interface RootRouteChildren {
   StyleRoute: typeof StyleRoute
   WardrobeRoute: typeof WardrobeRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiClosetImagesGarmentIdRoute: typeof ApiClosetImagesGarmentIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -141,6 +168,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ask': {
+      id: '/ask'
+      path: '/ask'
+      fullPath: '/ask'
+      preLoaderRoute: typeof AskRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/calendar': {
@@ -192,11 +226,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/closet/images/$garmentId': {
+      id: '/api/closet/images/$garmentId'
+      path: '/api/closet/images/$garmentId'
+      fullPath: '/api/closet/images/$garmentId'
+      preLoaderRoute: typeof ApiClosetImagesGarmentIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AskRoute: AskRoute,
   CalendarRoute: CalendarRoute,
   LoginRoute: LoginRoute,
   ProfileRoute: ProfileRoute,
@@ -204,6 +246,7 @@ const rootRouteChildren: RootRouteChildren = {
   StyleRoute: StyleRoute,
   WardrobeRoute: WardrobeRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiClosetImagesGarmentIdRoute: ApiClosetImagesGarmentIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

@@ -8,7 +8,10 @@ const WEEKDAY: Record<string, string> = {
   Sat: "星期六",
 };
 
-export type TaipeiNow = {
+/** Mainland China civil time. Shanghai and Beijing share this zone. */
+export const CHINA_TIME_ZONE = "Asia/Shanghai";
+
+export type ChinaNow = {
   key: string;
   label: string;
   hello: string;
@@ -18,9 +21,9 @@ export type TaipeiNow = {
   hour: number;
 };
 
-export function taipeiNow(date = new Date()): TaipeiNow {
+export function shanghaiNow(date = new Date()): ChinaNow {
   const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Taipei",
+    timeZone: CHINA_TIME_ZONE,
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
@@ -57,16 +60,16 @@ export function daysInMonth(year: number, month: number) {
   return new Date(year, month, 0).getDate();
 }
 
-/** Sunday-first offset for a Taipei calendar month. */
+/** Sunday-first offset for a calendar month in China (UTC+8, no daylight saving). */
 export function firstWeekday(year: number, month: number) {
   const utc = new Date(Date.UTC(year, month - 1, 1, 4, 0, 0));
   const weekday = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Taipei",
+    timeZone: CHINA_TIME_ZONE,
     weekday: "short",
   }).format(utc);
   return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(weekday);
 }
 
-export function ntd(amount: number) {
-  return `NT$ ${amount.toLocaleString("zh-TW")}`;
+export function cny(amount: number) {
+  return `¥${Math.round(amount).toLocaleString("zh-CN")}`;
 }

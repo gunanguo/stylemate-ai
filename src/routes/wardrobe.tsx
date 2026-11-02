@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Chip, GarmentSheet, PiecePhoto } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
-import { ntd, taipeiNow } from "@/lib/closet/dates";
+import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { costPerWear, wearStats } from "@/lib/closet/stats";
 import { useCloset } from "@/lib/closet/store";
 import { CATEGORIES, STYLE_TAGS, type Category, type Garment } from "@/lib/closet/types";
@@ -191,7 +191,7 @@ function WardrobePage() {
                 {detail.owned ? "已拥有" : "新品"}
               </span>
             </div>
-            {detail.price > 0 ? <p className="mt-4 text-lg font-bold">{ntd(detail.price)}</p> : null}
+            {detail.price > 0 ? <p className="mt-4 text-lg font-bold">{cny(detail.price)}</p> : null}
             <WearLine garment={detail} wornItems={wornItems} />
             {confirming ? (
               <div className="mt-6 rounded-2xl border border-border bg-card p-4">
@@ -240,14 +240,14 @@ function WardrobePage() {
 }
 
 function WearLine({ garment, wornItems }: { garment: Garment; wornItems: Record<string, string[]> }) {
-  const today = taipeiNow().key;
+  const today = shanghaiNow().key;
   const stats = wearStats(garment.id, garment.addedAt, wornItems, today);
   const cost = costPerWear(garment.price, garment.owned, stats.count);
   return (
     <div className="mt-4 grid grid-cols-3 gap-2 text-center">
       <Stat label="穿过" value={`${stats.count} 次`} />
       <Stat label="闲置" value={stats.idle === 0 ? "今天" : `${stats.idle} 天`} />
-      <Stat label="单次" value={cost == null ? "—" : ntd(cost)} />
+      <Stat label="单次" value={cost == null ? "—" : cny(cost)} />
     </div>
   );
 }

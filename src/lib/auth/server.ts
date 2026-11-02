@@ -36,6 +36,7 @@ import { getCookie } from "@tanstack/react-start/server";
 import { randomBytes } from "node:crypto";
 import { Pool } from "pg";
 import { ensureDbReady, getPglite } from "../db";
+import { hostedPoolOptions, resolveDatabaseUrl } from "../../../scripts/pg-url.mjs";
 import { emailAndPasswordEnabled } from "./email-password";
 import { GATE_PROVIDER_ID, gateIdentitySessions } from "./gate-session.server";
 import { GROK_PROVIDERS } from "./providers";
@@ -85,6 +86,15 @@ const grokClientSecret = env("GROK_AUTH_CLIENT_SECRET") ?? PREVIEW_CLIENT_SECRET
 export const authConfigured =
   !authDisabled && Boolean(grokClientId && grokClientSecret);
 
+/**
+ * Google / X buttons stay hidden unless the owner sets both broker credentials.
+ * The baked preview client is not enough — mainland installs should not offer
+ * a login that only works inside the Grok sandbox.
+ */
+export const socialLoginConfigured = Boolean(
+  env("GROK_AUTH_CLIENT_ID") && env("GROK_AUTH_CLIENT_SECRET"),
+);
+
 // This app's own Better Auth origin. When deployed the deployer injects the
 // public URL. In the sandbox live preview there's no fixed URL (each preview gets
 // a dynamic `*.grok-sandbox.com` host), so we hand Better Auth a dynamic baseURL:
@@ -95,37 +105,71 @@ const explicitBaseURL = env("BETTER_AUTH_URL");
 // Explicit `string[]` (not a readonly tuple) — Better Auth's DynamicBaseURLConfig
 // requires a mutable `allowedHosts: string[]`.
 const previewAllowedHosts: string[] = [...PREVIEW_ALLOWED_HOSTS];
-// Local `npm run dev` (port 8080 contract). Browsers may send Origin as any of
-// these for the same server — trusting only `localhost` rejects `127.0.0.1` and
-// breaks email/password with "Invalid origin".
+// Local `npm run dev`. Browsers may send Origin as any of these for the same
+// server — trusting only `localhost` rejects `127.0.0.1` and breaks
+// email/password with "Invalid origin". 43123 is the dev script port; 8080
+// stays accepted for older preview tooling.
 const LOCAL_DEV_ORIGINS: string[] = [
+  "http://localhost:43123",
+  "http://127.0.0.1:43123",
+  "http://[::1]:43123",
   "http://localhost:8080",
   "http://127.0.0.1:8080",
   "http://[::1]:8080",
 ];
-const baseURL = explicitBaseURL ?? {
-  // Include loopback hosts so dynamic baseURL resolves for local email/password
-  // (not only the preview wildcard).
-  allowedHosts: [...previewAllowedHosts, "localhost", "127.0.0.1", "[::1]"],
+
+function hostOf(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  try {
+    return new URL(url).host;
+  } catch {
+    return undefined;
+  }
+}
+
+// Render, Vercel, and a custom domain all have to pass the origin check or
+// email sign-in returns "Invalid origin" on the phone.
+const renderExternalUrl = env("RENDER_EXTERNAL_URL");
+const deployHosts = [
+  hostOf(explicitBaseURL),
+  hostOf(renderExternalUrl),
+  env("VERCEL_URL"),
+  env("VERCEL_PROJECT_PRODUCTION_URL"),
+  env("VERCEL_BRANCH_URL"),
+].filter((host): host is string => Boolean(host));
+const allowedHosts: string[] = [
+  ...previewAllowedHosts,
+  "*.onrender.com",
+  "*.vercel.app",
+  "localhost",
+  "127.0.0.1",
+  "[::1]",
+  ...deployHosts,
+];
+const baseURL = {
+  allowedHosts,
   // `auto` → trust both http:// and https:// expansions of allowedHosts
-  // (preview is https; local dev is http).
+  // (Render and Vercel are https; local dev is http).
   protocol: "auto" as const,
-  fallback: "http://localhost:8080",
+  fallback:
+    explicitBaseURL ??
+    renderExternalUrl ??
+    (env("VERCEL_URL") ? `https://${env("VERCEL_URL")}` : "http://localhost:43123"),
 };
 
 // Origins Better Auth accepts on credentialed POSTs (sign-up/sign-in, etc.).
 // Missing entries here surface as FORBIDDEN "Invalid origin".
-const trustedOrigins: string[] = explicitBaseURL
-  ? [explicitBaseURL, ...LOCAL_DEV_ORIGINS]
-  : [
-      // Host wildcards (matched against Origin's host)
-      ...previewAllowedHosts,
-      // Full-origin wildcards (matched against Origin)
-      ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
-      ...LOCAL_DEV_ORIGINS,
-    ];
+const trustedOrigins: string[] = [
+  ...LOCAL_DEV_ORIGINS,
+  "https://*.onrender.com",
+  "https://*.vercel.app",
+  ...previewAllowedHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+  ...deployHosts.flatMap((host) => [`https://${host}`, `http://${host}`]),
+  ...(explicitBaseURL ? [explicitBaseURL] : []),
+  ...(renderExternalUrl ? [renderExternalUrl] : []),
+];
 
-const databaseUrl = env("DATABASE_URL");
+const databaseUrl = resolveDatabaseUrl();
 
 // Static broker OAuth endpoints (skip OIDC discovery on every sign-in / callback).
 // Discovery would cost an extra network hop to the broker before the popup can
@@ -142,7 +186,7 @@ const grokUserInfoUrl = `${issuerBase}/api/auth/oauth2/userinfo`;
 // schema from `migrations/auth/0001_auth.sql`, copied into `migrations/` when
 // the app turns sign-in on.
 const database = databaseUrl
-  ? new Pool({ connectionString: databaseUrl })
+  ? new Pool(hostedPoolOptions(databaseUrl))
   : { dialect: pgliteDialect(() => getPglite()), type: "postgres" as const };
 
 /** Session token cookie name — also read by the live-preview popup completion page. */
@@ -150,12 +194,12 @@ export const SESSION_TOKEN_COOKIE = "__Host-grok-auth.session_token";
 
 // Built separately so the `betterAuth({...})` call stays easy to edit without
 // breaking brackets (models often trip on the conditional plugin spread).
-const grokOAuthPlugin = authConfigured
+const grokOAuthPlugin = socialLoginConfigured
   ? genericOAuth({
       config: GROK_PROVIDERS.map(({ providerId, idp }) => ({
         providerId,
-        clientId: grokClientId as string,
-        clientSecret: grokClientSecret as string,
+        clientId: env("GROK_AUTH_CLIENT_ID") as string,
+        clientSecret: env("GROK_AUTH_CLIENT_SECRET") as string,
         // Prefer static endpoints over `discoveryUrl` so initiating (and
         // completing) OAuth does not wait on a broker discovery fetch.
         authorizationUrl: grokAuthorizationUrl,

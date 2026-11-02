@@ -68,6 +68,10 @@ export function closetFromText(text: string): ClosetData | null {
   }
 }
 
+export function parseCloset(value: unknown): ClosetData | null {
+  return readClosetFromUnknown(value);
+}
+
 function readClosetFromUnknown(parsed: unknown): ClosetData | null {
   if (!parsed || typeof parsed !== "object") return null;
   const wrapped = parsed as { state?: Partial<ClosetData> };
@@ -81,7 +85,7 @@ function readClosetFromUnknown(parsed: unknown): ClosetData | null {
     profile: {
       name: state.profile.name,
       styles: Array.isArray(state.profile.styles) ? state.profile.styles.filter((item) => typeof item === "string") : [],
-      city: typeof state.profile.city === "string" && state.profile.city ? state.profile.city : "元林",
+      city: typeof state.profile.city === "string" && state.profile.city ? state.profile.city : "上海",
     },
     garments: state.garments.filter(isGarment),
     outfits,
@@ -95,14 +99,23 @@ function readClosetFromUnknown(parsed: unknown): ClosetData | null {
 }
 
 export function readCloset(): ClosetData | null {
+  return readClosetByOwner(closetOwner);
+}
+
+/** Read a specific account's browser copy, or the logged-out copy when owner is null. */
+export function readClosetByOwner(owner: string | null): ClosetData | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(closetStorageKey());
+    const raw = localStorage.getItem(owner ? `${CLOSET_STORAGE_KEY}:${owner}` : CLOSET_STORAGE_KEY);
     if (!raw) return null;
     return readClosetFromUnknown(JSON.parse(raw));
   } catch {
     return null;
   }
+}
+
+export function importFlagKey(userId: string) {
+  return `${CLOSET_STORAGE_KEY}:imported:${userId}`;
 }
 
 function largestDataImage(garments: Garment[]) {

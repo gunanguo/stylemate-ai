@@ -1,20 +1,39 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { LookCollage } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
-import { dateKey, daysInMonth, firstWeekday, taipeiNow } from "@/lib/closet/dates";
+import { dateKey, daysInMonth, firstWeekday, shanghaiNow } from "@/lib/closet/dates";
+import { suggestLooks } from "@/lib/closet/suggest";
 import { useCloset } from "@/lib/closet/store";
 import { piecesOf, suggestOutfits } from "@/lib/closet/stylist";
+import type { Garment } from "@/lib/closet/types";
 import { useLiveWeather } from "@/lib/closet/weather";
 
 const WEEK = ["日", "一", "二", "三", "四", "五", "六"];
 
+function slimGarments(garments: Garment[]) {
+  return garments.map(({ id, name, brand, category, slot, color, styles, cut, owned, warmth, formality }) => ({
+    id,
+    name,
+    brand,
+    category,
+    slot,
+    color,
+    styles,
+    cut,
+    owned,
+    warmth,
+    formality,
+  }));
+}
+
 export const Route = createFileRoute("/calendar")({ component: CalendarPage });
 
 function CalendarPage() {
-  const now = taipeiNow();
+  const now = shanghaiNow();
   const [cursor, setCursor] = useState({ year: now.year, month: now.month });
   const [selected, setSelected] = useState(now.key);
   const garments = useCloset((state) => state.garments);
@@ -26,6 +45,8 @@ function CalendarPage() {
   const bumpSalt = useCloset((state) => state.bumpSalt);
   const rememberOutfit = useCloset((state) => state.rememberOutfit);
   const dailyOutfitId = useCloset((state) => state.dailyOutfitId);
+  const ask = useServerFn(suggestLooks);
+  const [planning, setPlanning] = useState(false);
   const forecast = useLiveWeather(profile.city);
   const dayForecast = forecast.days.find((day) => day.date === selected);
 
@@ -50,9 +71,9 @@ function CalendarPage() {
     toast("这天的穿搭已安排");
   }
 
-  function planFresh() {
+  async function planFresh() {
     const salt = bumpSalt();
-    const [next] = suggestOutfits(garments, {
+    const request = {
       occasion: "日常",
       mood: profile.styles[0] ? "优雅" : "简约",
       weather: dayForecast?.band ?? forecast.band,
@@ -60,15 +81,27 @@ function CalendarPage() {
       salt,
       preferred: profile.styles,
       limit: 1,
-    });
-    if (!next) {
-      toast("衣橱里还不够配一套");
-      return;
+    };
+    setPlanning(true);
+    try {
+      let next;
+      try {
+        const result = await ask({ data: { garments: slimGarments(garments), request } });
+        next = result.outfits[0];
+      } catch {
+        next = suggestOutfits(garments, request)[0];
+      }
+      if (!next) {
+        toast("衣橱里还不够配一套");
+        return;
+      }
+      const stamped = { ...next, createdAt: Date.now(), saved: true, score: 0 };
+      rememberOutfit(stamped);
+      wear(selected, stamped.id);
+      toast(`已配好「${stamped.name}」`);
+    } finally {
+      setPlanning(false);
     }
-    const stamped = { ...next, createdAt: Date.now(), saved: true };
-    rememberOutfit(stamped);
-    wear(selected, stamped.id);
-    toast(`已配好「${stamped.name}」`);
   }
 
   return (
@@ -157,10 +190,11 @@ function CalendarPage() {
           </button>
           <button
             type="button"
-            onClick={planFresh}
-            className="min-h-12 rounded-xl bg-primary text-sm font-semibold text-primary-foreground"
+            onClick={() => void planFresh()}
+            disabled={planning}
+            className="min-h-12 rounded-xl bg-primary text-sm font-semibold text-primary-foreground disabled:opacity-60"
           >
-            让造型师配一套
+            {planning ? "正在搭配…" : "让造型师配一套"}
           </button>
         </div>
 

@@ -1,11 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Bell, CloudSun, Plus, Sparkles } from "lucide-react";
+import { ArrowRight, Bell, CloudSun, Plus, ShoppingBag, Sparkles } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Chip, LookCollage, PiecePhoto } from "@/components/closet-ui";
-import { ntd, taipeiNow } from "@/lib/closet/dates";
+import { Chip, LookCollage, PiecePhoto, ShopLinks } from "@/components/closet-ui";
+import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { buildNotices, markNoticesRead, readNoticeIds } from "@/lib/closet/notices";
-import { shopSearchUrl } from "@/lib/closet/shop";
 import { wearStats } from "@/lib/closet/stats";
 import { useCloset } from "@/lib/closet/store";
 import { isComplete, missingPrice, piecesOf } from "@/lib/closet/stylist";
@@ -29,7 +28,7 @@ function Home() {
   const shopping = useCloset((state) => state.shopping);
   const [filter, setFilter] = useState<Category>("全部");
   const [panel, setPanel] = useState<"notice" | "buy" | null>(null);
-  const now = taipeiNow();
+  const now = shanghaiNow();
   const forecast = useLiveWeather(profile.city);
 
   const owned = garments.filter((item) => item.owned);
@@ -163,24 +162,16 @@ function Home() {
               </span>
             </div>
             <div className="px-2 pt-4 pb-2">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-lg italic">{featured.name}</h3>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {featured.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="shrink-0 rounded-xl bg-ink px-3 py-2 text-center text-ink-foreground">
-                  <p className="text-xs font-medium tracking-widest uppercase opacity-75">AI 匹配度</p>
-                  <p className="text-lg leading-tight font-bold">{featured.score}%</p>
-                </div>
+              <h3 className="text-lg italic">{featured.name}</h3>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {featured.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="rounded-full border border-border bg-secondary px-2.5 py-1 text-xs text-muted-foreground"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
               <ul className="no-scrollbar -mx-1 mt-4 flex gap-2 overflow-x-auto px-1">
                 {pieces.map((piece) => (
@@ -194,14 +185,14 @@ function Home() {
               <div className="mt-4 flex items-center justify-between border-t border-border pt-4">
                 <div>
                   <p className="text-xs text-muted-foreground">{missing.length > 0 ? "补齐新品" : "这套都在衣橱里"}</p>
-                  <p className="text-lg font-bold">{missing.length > 0 ? ntd(missingPrice(pieces)) : "NT$ 0"}</p>
+                  <p className="text-lg font-bold">{missing.length > 0 ? cny(missingPrice(pieces)) : cny(0)}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => (missing.length > 0 ? setPanel("buy") : toast("没有要买的单品"))}
                   className="flex min-h-11 items-center gap-1 text-sm font-semibold text-primary"
                 >
-                  一键购买 <ArrowRight className="h-4 w-4" />
+                  去购买 <ArrowRight className="h-4 w-4" />
                 </button>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -257,6 +248,19 @@ function Home() {
             </span>
           </span>
           <ArrowRight className="h-5 w-5" />
+        </Link>
+        <Link
+          to="/ask"
+          className="mt-3 flex items-center justify-between rounded-2xl border border-border bg-card p-4"
+        >
+          <span className="flex items-center gap-3">
+            <ShoppingBag className="h-5 w-5 text-primary" strokeWidth={1.75} />
+            <span>
+              <span className="block text-sm font-semibold">买前问衣橱</span>
+              <span className="block text-xs text-muted-foreground">先看它能配出几套，再决定要不要买</span>
+            </span>
+          </span>
+          <ArrowRight className="h-4 w-4 text-muted-foreground" />
         </Link>
       </section>
 
@@ -355,17 +359,10 @@ function Home() {
                 <div className="min-w-0 flex-1 py-1">
                   <p className="text-xs text-muted-foreground">{item.brand || "设计师单品"}</p>
                   <p className="truncate font-semibold">{item.name}</p>
-                  <p className="text-sm font-semibold">{ntd(item.price)}</p>
+                  <p className="text-sm font-semibold">{cny(item.price)}</p>
                 </div>
-                <div className="flex flex-col justify-center gap-2">
-                  <a
-                    href={shopSearchUrl(item)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="rounded-xl bg-secondary px-3 py-2 text-center text-xs font-semibold"
-                  >
-                    去搜寻
-                  </a>
+                <div className="flex flex-col items-end justify-center">
+                  <ShopLinks item={item} className="flex-col items-end gap-0" />
                   <button
                     type="button"
                     onClick={() => {

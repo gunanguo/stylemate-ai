@@ -85,7 +85,7 @@ function authPopupPlugin(): Plugin {
           }
 
           const host = String(
-            req.headers["x-forwarded-host"] ?? req.headers.host ?? "localhost:8080",
+            req.headers["x-forwarded-host"] ?? req.headers.host ?? "localhost:43123",
           );
           const proto = String(
             req.headers["x-forwarded-proto"] ??
@@ -142,13 +142,22 @@ function authPopupPlugin(): Plugin {
   };
 }
 
-// `0.0.0.0:8080` is the live-preview contract — don't change host/port.
-// The dev server starts once `src/router.tsx` and `src/routes/` exist — see
-// AGENTS.md § "First scaffold".
+// Render (and a local `npm run build`) use Nitro's node server. A Vercel
+// build sets VERCEL=1 and keeps the existing Build Output API preset.
+// Override either with NITRO_PRESET.
+function nitroPreset(): string {
+  const requested = process.env.NITRO_PRESET?.trim();
+  if (requested) return requested;
+  if (process.env.VERCEL === "1") return "vercel";
+  return "render-com";
+}
+
+// Standalone dev server. Auth trusted origins in `src/lib/auth/server.ts`
+// must include this port or email sign-in is rejected as an invalid origin.
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
-    port: 8080,
+    port: 43123,
     strictPort: true,
   },
   preview: {
@@ -170,7 +179,7 @@ export default defineConfig(({ command, isPreview }) => ({
     ...(command === "build" || isPreview
       ? [
           nitro({
-            preset: "vercel",
+            preset: nitroPreset(),
             // Auto-registers server/middleware/* (the PWA install page +
             // manifest + head-tag middleware). Nitro v3 defaults serverDir to
             // false, so removing this silently unwires /?install=1 on deploys.

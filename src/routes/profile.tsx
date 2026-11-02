@@ -2,10 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { AccountCard } from "@/components/account-card";
-import { Chip } from "@/components/closet-ui";
+import { Chip, ShopLinks } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
-import { ntd, taipeiNow } from "@/lib/closet/dates";
-import { shopSearchUrl } from "@/lib/closet/shop";
+import { cny, shanghaiNow } from "@/lib/closet/dates";
 import { wearStats } from "@/lib/closet/stats";
 import { closetFromText, type ClosetData } from "@/lib/closet/storage";
 import { useCloset } from "@/lib/closet/store";
@@ -32,7 +31,7 @@ function ProfilePage() {
   const [name, setLocal] = useState(profile.name);
   const [confirm, setConfirm] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const today = taipeiNow().key;
+  const today = shanghaiNow().key;
 
   useEffect(() => {
     setLocal(profile.name);
@@ -77,7 +76,7 @@ function ProfilePage() {
             value={name}
             onChange={(event) => setLocal(event.target.value)}
             onBlur={() => {
-              const next = name.trim() || "Sophie";
+              const next = name.trim() || "小满";
               setLocal(next);
               setName(next);
             }}
@@ -107,7 +106,7 @@ function ProfilePage() {
                 setCity(city.name);
                 toast(`已切换到${city.name}`);
               },
-              () => toast("没有取得位置，仍使用目前城市"),
+              () => toast("没有获取到位置，仍使用当前城市"),
               { enableHighAccuracy: false, timeout: 8000, maximumAge: 600_000 },
             );
           }}
@@ -133,7 +132,7 @@ function ProfilePage() {
         <section className="mt-10 rounded-3xl border border-border bg-card p-5">
           <h2 className="font-semibold">备份</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            导出一份衣橱文件，换设备时再导入。这不会上传到云端。
+            登录后的衣橱保存在服务器。也可以导出一份文件，当作额外备份。
           </p>
           <div className="mt-4 flex gap-2">
             <button
@@ -179,7 +178,7 @@ function ProfilePage() {
         <section className="mt-10 rounded-3xl border border-border bg-card p-5">
           <h2 className="font-semibold">示例衣橱</h2>
           <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-            恢复 Sophie 的十件示范单品和已收藏造型。你之后添加的衣服会被清掉。
+            恢复小满的十件示范单品和已收藏造型。你之后添加的衣服会被清掉。
           </p>
           {confirm ? (
             <div className="mt-4 flex gap-2">
@@ -194,7 +193,7 @@ function ProfilePage() {
                 type="button"
                 onClick={() => {
                   reset();
-                  setLocal("Sophie");
+                  setLocal("小满");
                   setConfirm(false);
                   toast("已恢复示例衣橱");
                 }}
@@ -237,7 +236,7 @@ function downloadCloset(state: ClosetData) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `stylemate-${taipeiNow().key}.json`;
+  link.download = `stylemate-${shanghaiNow().key}.json`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -267,12 +266,10 @@ function ShoppingList({
             <li key={item.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 py-3">
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{item.name}</p>
-                <p className="text-xs text-muted-foreground">{item.price > 0 ? ntd(item.price) : "未标价"}</p>
+                <p className="text-xs text-muted-foreground">{item.price > 0 ? cny(item.price) : "未标价"}</p>
               </div>
-              <div className="flex shrink-0 gap-2">
-                <a href={shopSearchUrl(item)} target="_blank" rel="noreferrer" className="min-h-11 px-1 text-sm font-semibold text-primary">
-                  搜寻
-                </a>
+              <div className="flex shrink-0 items-center gap-2">
+                <ShopLinks item={item} />
                 <button type="button" onClick={() => onBought(item.id)} className="min-h-11 text-sm font-semibold">
                   已买
                 </button>

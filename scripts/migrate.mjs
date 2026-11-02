@@ -17,11 +17,12 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import pg from "pg";
 import { pendingMigrations } from "./migration-plan.mjs";
+import { hostedPoolOptions, resolveDatabaseUrl, sqlStatements } from "./pg-url.mjs";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = resolveDatabaseUrl();
 if (!databaseUrl) {
   console.log(
-    "[migrate] DATABASE_URL not set — skipping (the PGLite fallback migrates itself).",
+    "[migrate] DATABASE_URL not set — skipping (local PGLite migrates itself).",
   );
   process.exit(0);
 }
@@ -42,7 +43,7 @@ async function main() {
     return;
   }
 
-  const pool = new pg.Pool({ connectionString: databaseUrl, max: 1 });
+  const pool = new pg.Pool(hostedPoolOptions(databaseUrl));
   const client = await pool.connect();
   try {
     await client.query(
@@ -57,8 +58,9 @@ async function main() {
       const text = await readFile(join(migrationsDir, name), "utf8");
       try {
         await client.query("BEGIN");
-        // pg's simple-query protocol runs a whole multi-statement file at once.
-        await client.query(text);
+        for (const statement of sqlStatements(text)) {
+          await client.query(statement);
+        }
         await client.query("INSERT INTO _migrations (name) VALUES ($1)", [name]);
         await client.query("COMMIT");
       } catch (err) {

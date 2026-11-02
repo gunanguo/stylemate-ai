@@ -43,7 +43,7 @@ export function buildNotices(input: {
     notices.push({
       id: "shopping",
       title: "购买清单",
-      body: `还有 ${input.shoppingCount} 件在清单里，可以去搜寻或标成已买。`,
+      body: `还有 ${input.shoppingCount} 件在清单里，可以去搜索或标成已买。`,
     });
   }
   return notices;

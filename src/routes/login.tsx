@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { SocialLogin } from "@/components/social-login";
 import { authClient, rememberAuthResult } from "@/lib/auth/client";
 import { authMessage } from "@/lib/auth/messages";
 
@@ -78,6 +79,7 @@ function LoginPage() {
       >
         {busy ? "请稍候" : "登录"}
       </button>
+      <SocialLogin />
       <p className="mt-6 text-center text-sm text-muted-foreground">
         还没有账号？{" "}
         <Link to="/register" className="font-semibold text-primary">

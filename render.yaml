@@ -1,0 +1,26 @@
+# Render Blueprint. Apply from a Git repo Render can clone (GitHub, GitLab, or
+# Bitbucket). Free web service, Node 22, Singapore (closest Render region to
+# mainland China). Neon supplies DATABASE_URL; this file does not create it.
+services:
+  - type: web
+    name: stylemate-ai
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    buildCommand: npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: HOST
+        value: 0.0.0.0
+      - key: DATABASE_URL
+        sync: false
+      - key: BETTER_AUTH_SECRET
+        generateValue: true
+      - key: BETTER_AUTH_URL
+        sync: false
+      - key: XAI_API_KEY
+        sync: false

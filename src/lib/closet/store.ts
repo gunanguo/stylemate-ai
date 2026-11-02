@@ -1,7 +1,19 @@
+import { toast } from "sonner";
 import { create } from "zustand";
 import { SEED_GARMENTS, SEED_OUTFITS, SEED_WORN } from "@/lib/closet/catalog";
-import { taipeiNow } from "@/lib/closet/dates";
-import { getClosetOwner, readCloset, setClosetOwner, writeCloset, type ClosetData, type WriteResult } from "@/lib/closet/storage";
+import { shanghaiNow } from "@/lib/closet/dates";
+import { shouldImportLocalCloset } from "@/lib/closet/snapshot";
+import { loadCloset, saveCloset } from "@/lib/closet/sync";
+import {
+  getClosetOwner,
+  importFlagKey,
+  readCloset,
+  readClosetByOwner,
+  setClosetOwner,
+  writeCloset,
+  type ClosetData,
+  type WriteResult,
+} from "@/lib/closet/storage";
 import type { Garment, Outfit } from "@/lib/closet/types";
 
 type Closet = ClosetData & {
@@ -38,7 +50,7 @@ function freshData(): ClosetData {
   }));
   const worn = { ...SEED_WORN };
   return {
-    profile: { name: "Sophie", styles: ["静奢风", "职场通勤"], city: "元林" },
+    profile: { name: "小满", styles: ["静奢风", "职场通勤"], city: "上海" },
     garments: SEED_GARMENTS.map((garment) => ({ ...garment, styles: [...garment.styles] })),
     outfits,
     worn,
@@ -52,7 +64,7 @@ function freshData(): ClosetData {
 
 function emptyAccount(name?: string): ClosetData {
   return {
-    profile: { name: name?.trim() || "我的衣橱", styles: [], city: "元林" },
+    profile: { name: name?.trim() || "我的衣橱", styles: [], city: "上海" },
     garments: [],
     outfits: [],
     worn: {},
@@ -66,19 +78,97 @@ function emptyAccount(name?: string): ClosetData {
 
 let dirty = 0;
 let hydrated = false;
+let closetEpoch = 0;
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+let saveRevision = 0;
 
-export function switchCloset(userId: string | null, displayName?: string) {
-  if (hydrated && getClosetOwner() === userId) return;
-  setClosetOwner(userId);
-  hydrated = true;
-  const saved = readCloset();
-  if (saved) {
-    useCloset.setState(saved);
+function rememberImport(userId: string) {
+  try {
+    localStorage.setItem(importFlagKey(userId), "1");
+  } catch {
+    // the server copy is still the source of truth
+  }
+}
+
+function alreadyImported(userId: string) {
+  try {
+    return localStorage.getItem(importFlagKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function localClosetFor(userId: string) {
+  return readClosetByOwner(userId) ?? readClosetByOwner(null);
+}
+
+async function pushCloset(epoch: number, revision: number, data: ClosetData) {
+  try {
+    const result = await saveCloset({ data });
+    if (epoch !== closetEpoch || revision !== saveRevision) return;
+    if (result.closet) useCloset.setState(result.closet);
+    if (result.warning) toast(result.warning);
+  } catch (error) {
+    if (epoch !== closetEpoch) return;
+    toast(error instanceof Error ? error.message : "衣橱没有同步到服务器，请再试一次");
+  }
+}
+
+function scheduleServerSave() {
+  const epoch = closetEpoch;
+  const data = pick(useCloset.getState());
+  const urgent = data.garments.some((garment) => garment.image.startsWith("data:image/"));
+  saveRevision += 1;
+  const revision = saveRevision;
+  if (saveTimer) clearTimeout(saveTimer);
+  if (urgent) {
+    void pushCloset(epoch, revision, data);
     return;
   }
-  const next = userId ? emptyAccount(displayName) : freshData();
-  useCloset.setState(next);
-  if (userId) writeCloset(next);
+  saveTimer = setTimeout(() => {
+    void pushCloset(epoch, revision, pick(useCloset.getState()));
+  }, 350);
+}
+
+export async function switchCloset(userId: string | null, displayName?: string) {
+  if (hydrated && getClosetOwner() === userId) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  closetEpoch += 1;
+  const epoch = closetEpoch;
+  setClosetOwner(userId);
+  hydrated = true;
+  if (!userId) {
+    const saved = readCloset();
+    useCloset.setState(saved ?? freshData());
+    return;
+  }
+  try {
+    const remote = await loadCloset();
+    if (epoch !== closetEpoch) return;
+    const local = localClosetFor(userId);
+    if (
+      shouldImportLocalCloset({
+        server: remote.closet,
+        local,
+        alreadyImported: alreadyImported(userId),
+      }) &&
+      local
+    ) {
+      const imported = await saveCloset({ data: local });
+      if (epoch !== closetEpoch) return;
+      rememberImport(userId);
+      if (imported.closet) useCloset.setState(imported.closet);
+      if (imported.warning) toast(imported.warning);
+      toast("已把这台设备上的衣橱导入账号");
+      return;
+    }
+    useCloset.setState(remote.closet ?? emptyAccount(displayName));
+  } catch {
+    if (epoch !== closetEpoch) return;
+    const local = localClosetFor(userId);
+    useCloset.setState(local ?? emptyAccount(displayName));
+    toast("衣橱暂时没能从服务器读取，先显示这台设备上的副本");
+  }
 }
 
 function pick(state: Closet): ClosetData {
@@ -97,6 +187,10 @@ function pick(state: Closet): ClosetData {
 
 export const useCloset = create<Closet>()((set, get) => {
   function commit(): WriteResult {
+    if (getClosetOwner()) {
+      scheduleServerSave();
+      return { ok: true };
+    }
     const written = writeCloset(pick(get()));
     if (written.ok && written.garments) set({ garments: written.garments });
     return written;
@@ -155,7 +249,7 @@ export const useCloset = create<Closet>()((set, get) => {
       update({ outfits });
     },
     wear: (date, outfitId) => {
-      const today = taipeiNow().key;
+      const today = shanghaiNow().key;
       const outfit = get().outfits.find((item) => item.id === outfitId);
       const wornItems = { ...get().wornItems };
       if (outfit) wornItems[date] = [...outfit.garmentIds];
@@ -174,7 +268,7 @@ export const useCloset = create<Closet>()((set, get) => {
     },
     setDaily: (outfit) => {
       get().rememberOutfit(outfit);
-      update({ dailyDate: taipeiNow().key, dailyOutfitId: outfit.id });
+      update({ dailyDate: shanghaiNow().key, dailyOutfitId: outfit.id });
     },
     setName: (name) => update({ profile: { ...get().profile, name } }),
     setCity: (city) => update({ profile: { ...get().profile, city } }),

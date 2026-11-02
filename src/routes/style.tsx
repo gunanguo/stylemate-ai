@@ -1,13 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Chip, LookCollage } from "@/components/closet-ui";
 import { PageHeader } from "@/components/shell";
-import { ntd, taipeiNow } from "@/lib/closet/dates";
+import { cny, shanghaiNow } from "@/lib/closet/dates";
+import { suggestLooks, type SuggestResult } from "@/lib/closet/suggest";
 import { useCloset } from "@/lib/closet/store";
 import { missingPrice, piecesOf, suggestOutfits } from "@/lib/closet/stylist";
-import { MOODS, OCCASIONS, WEATHERS, type Outfit } from "@/lib/closet/types";
+import { MOODS, OCCASIONS, WEATHERS, type Garment, type Outfit } from "@/lib/closet/types";
 import { useLiveWeather } from "@/lib/closet/weather";
 
 export const Route = createFileRoute("/style")({ component: StylePage });
@@ -27,14 +29,17 @@ function StylePage() {
   const [weather, setWeather] = useState<string>(forecast.band);
   const [weatherTouched, setWeatherTouched] = useState(false);
   const [results, setResults] = useState<Outfit[]>([]);
+  const [source, setSource] = useState<SuggestResult["source"] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const ask = useServerFn(suggestLooks);
 
   useEffect(() => {
     if (!weatherTouched && forecast.live) setWeather(forecast.band);
   }, [forecast.band, forecast.live, weatherTouched]);
 
-  function generate() {
+  async function generate() {
     const nextSalt = bumpSalt();
-    const next = suggestOutfits(garments, {
+    const request = {
       occasion,
       mood,
       weather,
@@ -42,14 +47,28 @@ function StylePage() {
       salt: nextSalt,
       preferred: profile.styles,
       limit: 3,
-    }).map((outfit) => ({ ...outfit, createdAt: Date.now() }));
-    if (next.length === 0) {
-      toast("衣橱里还不够配一套，先去添加衣物");
-      setResults([]);
-      return;
+    };
+    setBusy(true);
+    try {
+      let result: SuggestResult;
+      try {
+        result = await ask({ data: { garments: slimGarments(garments), request } });
+      } catch {
+        result = { source: "rules", outfits: suggestOutfits(garments, request) };
+      }
+      const next = result.outfits.map((outfit) => ({ ...outfit, createdAt: Date.now(), score: 0 }));
+      if (next.length === 0) {
+        toast("衣橱里还不够配一套，先去添加衣物");
+        setResults([]);
+        setSource(null);
+        return;
+      }
+      for (const outfit of next) rememberOutfit(outfit);
+      setResults(next);
+      setSource(result.source);
+    } finally {
+      setBusy(false);
     }
-    for (const outfit of next) rememberOutfit(outfit);
-    setResults(next);
   }
 
   const selected = [occasion, mood, weather].filter(Boolean);
@@ -123,13 +142,20 @@ function StylePage() {
         </div>
         <button
           type="button"
-          onClick={generate}
-          className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-float"
+          onClick={() => void generate()}
+          disabled={busy}
+          className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-primary text-sm font-semibold text-primary-foreground shadow-float disabled:opacity-60"
         >
           <Sparkles className="h-4 w-4" />
-          生成我的穿搭
+          {busy ? "正在看你的衣橱…" : "生成我的穿搭"}
         </button>
-        <p className="mt-2 text-center text-xs text-muted-foreground">会优先使用你已经拥有的 {garments.filter((item) => item.owned).length} 件</p>
+        <p className="mt-2 text-center text-xs text-muted-foreground">
+          {source === "model"
+            ? "造型师根据你的衣橱、天气和场合写了这几套"
+            : source === "rules"
+              ? "没有连上造型师，这几套是按天气和场合从衣橱里排的"
+              : `会优先使用你已经拥有的 ${garments.filter((item) => item.owned).length} 件`}
+        </p>
       </section>
 
       <div className="mt-6 space-y-4 px-5">
@@ -141,12 +167,9 @@ function StylePage() {
             <article key={live.id} className="overflow-hidden rounded-3xl border border-border bg-card p-3 shadow-soft">
               <LookCollage pieces={pieces} />
               <div className="px-1 pt-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h3 className="text-lg italic">{live.name}</h3>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{live.note}</p>
-                  </div>
-                  <p className="rounded-xl bg-ink px-3 py-2 text-sm font-bold text-ink-foreground">{live.score}%</p>
+                <div>
+                  <h3 className="text-lg italic">{live.name}</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{live.note}</p>
                 </div>
                 <ul className="mt-3 space-y-1">
                   {pieces.map((piece) => (
@@ -162,7 +185,7 @@ function StylePage() {
                   ))}
                 </ul>
                 {missing.length > 0 ? (
-                  <p className="mt-2 text-xs text-muted-foreground">补齐新品 {ntd(missingPrice(pieces))}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">补齐新品 {cny(missingPrice(pieces))}</p>
                 ) : (
                   <p className="mt-2 text-xs text-success">全部来自你的衣橱</p>
                 )}
@@ -180,7 +203,7 @@ function StylePage() {
                   <button
                     type="button"
                     onClick={() => {
-                      const today = taipeiNow().key;
+                      const today = shanghaiNow().key;
                       setDaily(live);
                       wear(today, live.id);
                       toast("已设为今日穿搭");
@@ -197,6 +220,22 @@ function StylePage() {
       </div>
     </div>
   );
+}
+
+function slimGarments(garments: Garment[]) {
+  return garments.map(({ id, name, brand, category, slot, color, styles, cut, owned, warmth, formality }) => ({
+    id,
+    name,
+    brand,
+    category,
+    slot,
+    color,
+    styles,
+    cut,
+    owned,
+    warmth,
+    formality,
+  }));
 }
 
 function Group({

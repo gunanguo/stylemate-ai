@@ -104,12 +104,7 @@ function scoreLook(pieces: Garment[], request: StyleRequest) {
   if (request.weather === "炎热" && !request.rain && pieces.some((piece) => piece.slot === "outer")) score -= 12;
   if (request.rain && pieces.some((piece) => piece.slot === "outer")) score += 8;
   if (request.rain && !pieces.some((piece) => piece.slot === "outer")) score -= 6;
-  const signature = pieces
-    .map((piece) => piece.id)
-    .sort()
-    .join("-");
-  const jitter = hash(`${signature}:${request.salt}`) % 5;
-  return Math.max(68, Math.min(98, score + jitter));
+  return score;
 }
 
 type Draft = { pieces: Garment[] };
@@ -218,7 +213,7 @@ export function suggestOutfits(garments: Garment[], request: StyleRequest): Outf
     name: titleFor(item.pieces, request.occasion, request.mood),
     tags: [request.mood, request.occasion === "上班" ? "通勤" : request.occasion],
     garmentIds: item.pieces.map((piece) => piece.id),
-    score: item.score,
+    score: 0,
     occasion: request.occasion,
     note: noteFor(item.pieces, request.weather, Boolean(request.rain)),
     saved: false,
@@ -238,4 +233,50 @@ export function missingPrice(pieces: Garment[]) {
 
 export function isComplete(pieces: Garment[]) {
   return pieces.length > 0 && pieces.every((piece) => piece.owned);
+}
+
+function wearable(pieces: Garment[]) {
+  const slots = new Set(pieces.map((piece) => piece.slot));
+  return (slots.has("top") && slots.has("bottom")) || slots.has("onepiece");
+}
+
+/** Turn a model JSON payload into outfits that only use real closet ids. */
+export function coerceOutfits(
+  raw: unknown,
+  garments: Garment[],
+  request: Pick<StyleRequest, "occasion" | "mood"> & { limit?: number },
+): Outfit[] | null {
+  if (!raw || typeof raw !== "object") return null;
+  const list = (raw as { outfits?: unknown }).outfits;
+  if (!Array.isArray(list)) return null;
+  const byId = new Map(garments.map((garment) => [garment.id, garment]));
+  const outfits: Outfit[] = [];
+  for (const item of list) {
+    if (!item || typeof item !== "object") continue;
+    const record = item as { name?: unknown; garmentIds?: unknown; note?: unknown };
+    if (!Array.isArray(record.garmentIds)) continue;
+    const pieces: Garment[] = [];
+    for (const id of record.garmentIds) {
+      if (typeof id !== "string") continue;
+      const garment = byId.get(id);
+      if (!garment || pieces.some((piece) => piece.id === garment.id)) continue;
+      pieces.push(garment);
+    }
+    if (!wearable(pieces) || !pieces.some((piece) => piece.owned)) continue;
+    const name = typeof record.name === "string" ? record.name.trim().slice(0, 16) : "";
+    const note = typeof record.note === "string" ? record.note.trim().slice(0, 80) : "";
+    outfits.push({
+      id: `gen-${outfits.length}-${pieces.map((piece) => piece.id).join("-")}`,
+      name: name || "今日搭配",
+      tags: [request.mood, request.occasion === "上班" ? "通勤" : request.occasion],
+      garmentIds: pieces.map((piece) => piece.id),
+      score: 0,
+      occasion: request.occasion,
+      note: note || "这套只用了你衣橱里的单品。",
+      saved: false,
+      createdAt: 0,
+    });
+    if (outfits.length >= (request.limit ?? 3)) break;
+  }
+  return outfits.length > 0 ? outfits : null;
 }

@@ -37,6 +37,12 @@ export const authClient = createAuthClient({
  */
 export const authEnabled = import.meta.env.VITE_AUTH_ENABLED !== "false";
 
+/**
+ * Google / X buttons. Off unless the owner sets `VITE_SOCIAL_LOGIN=true`
+ * and the matching `GROK_AUTH_CLIENT_ID` / `GROK_AUTH_CLIENT_SECRET` on the server.
+ */
+export const socialLoginEnabled = import.meta.env.VITE_SOCIAL_LOGIN === "true";
+
 /** The upstream providers to render sign-in buttons for. */
 export { GROK_PROVIDERS };
 

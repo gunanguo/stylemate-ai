@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { useEffect, useState } from "react";
+import { CHINA_TIME_ZONE } from "@/lib/closet/dates";
 import type { WEATHERS } from "@/lib/closet/types";
 
 export type WeatherBand = (typeof WEATHERS)[number];
@@ -23,15 +24,16 @@ export type LiveWeather = {
 };
 
 export const CITIES = [
-  { name: "元林", latitude: 23.96, longitude: 120.57 },
-  { name: "台北", latitude: 25.03, longitude: 121.56 },
-  { name: "新北", latitude: 25.01, longitude: 121.46 },
-  { name: "桃园", latitude: 24.99, longitude: 121.31 },
-  { name: "新竹", latitude: 24.81, longitude: 120.97 },
-  { name: "台中", latitude: 24.15, longitude: 120.67 },
-  { name: "台南", latitude: 22.99, longitude: 120.21 },
-  { name: "高雄", latitude: 22.63, longitude: 120.3 },
-  { name: "花莲", latitude: 23.99, longitude: 121.6 },
+  { name: "上海", latitude: 31.23, longitude: 121.47 },
+  { name: "北京", latitude: 39.9, longitude: 116.41 },
+  { name: "广州", latitude: 23.13, longitude: 113.26 },
+  { name: "深圳", latitude: 22.54, longitude: 114.06 },
+  { name: "杭州", latitude: 30.27, longitude: 120.15 },
+  { name: "成都", latitude: 30.57, longitude: 104.07 },
+  { name: "武汉", latitude: 30.59, longitude: 114.31 },
+  { name: "西安", latitude: 34.34, longitude: 108.94 },
+  { name: "南京", latitude: 32.06, longitude: 118.8 },
+  { name: "重庆", latitude: 29.56, longitude: 106.55 },
 ] as const;
 
 const TTL = 30 * 60 * 1000;
@@ -58,7 +60,7 @@ export const FALLBACK_WEATHER: LiveWeather = {
   live: false,
   source: "",
   rain: false,
-  city: "元林",
+  city: "上海",
   days: [],
 };
 
@@ -167,7 +169,7 @@ async function fromMetNorway(place: Place) {
   for (const item of series) {
     if (!item.time) continue;
     const date = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Taipei",
+      timeZone: CHINA_TIME_ZONE,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
@@ -223,7 +225,7 @@ async function fromOpenMeteo(place: Place) {
   url.searchParams.set("longitude", String(place.longitude));
   url.searchParams.set("current", "temperature_2m,weather_code");
   url.searchParams.set("daily", "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum");
-  url.searchParams.set("timezone", "Asia/Taipei");
+  url.searchParams.set("timezone", CHINA_TIME_ZONE);
   url.searchParams.set("forecast_days", "14");
   const body = (await readJson(url.toString())) as {
     current?: { temperature_2m?: number; weather_code?: number };
@@ -273,18 +275,21 @@ export const fetchForecast = createServerFn({ method: "POST" })
     return { latitude, longitude, city };
   })
   .handler(async ({ data }): Promise<LiveWeather> => {
-    const [met, open, wttr] = await Promise.allSettled([
-      fromMetNorway(data),
+    // Open-Meteo needs no API key. The other two are only used when it fails.
+    const [open, wttr, met] = await Promise.allSettled([
       fromOpenMeteo(data),
       fromWttr(data),
+      fromMetNorway(data),
     ]);
-    const metValue = met.status === "fulfilled" ? met.value : null;
     const openValue = open.status === "fulfilled" ? open.value : null;
     const wttrValue = wttr.status === "fulfilled" ? wttr.value : null;
-    const picked = metValue?.current ? metValue : wttrValue?.current ? wttrValue : openValue;
+    const metValue = met.status === "fulfilled" ? met.value : null;
+    const picked = openValue?.current ? openValue : wttrValue?.current ? wttrValue : metValue;
     if (!picked?.current) return { ...FALLBACK_WEATHER, city: data.city };
     const days = openValue?.days.length ? openValue.days : picked.days;
-    const today = days.find((day) => day.date === new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Taipei" }).format(new Date()));
+    const today = days.find(
+      (day) => day.date === new Intl.DateTimeFormat("en-CA", { timeZone: CHINA_TIME_ZONE }).format(new Date()),
+    );
     return { ...picked.current, days, rain: today?.rain ?? picked.current.rain };
   });
 

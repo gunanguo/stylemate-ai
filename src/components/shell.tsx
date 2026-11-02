@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { CalendarDays, Shirt, Sparkles, Sun, User } from "lucide-react";
+import { CalendarDays, Shirt, ShoppingBag, Sparkles, Sun, User } from "lucide-react";
 import { useEffect, type ReactNode } from "react";
 import { Toaster } from "sonner";
 import { hydrateClosetFromStorage, switchCloset } from "@/lib/closet/store";
@@ -10,6 +10,7 @@ const TABS = [
   { to: "/", label: "今日", icon: Sun },
   { to: "/wardrobe", label: "衣柜", icon: Shirt },
   { to: "/style", label: "风格", icon: Sparkles },
+  { to: "/ask", label: "买前", icon: ShoppingBag },
   { to: "/calendar", label: "日历", icon: CalendarDays },
   { to: "/profile", label: "我的", icon: User },
 ] as const;

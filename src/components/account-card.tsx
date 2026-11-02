@@ -1,12 +1,17 @@
 import { Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { authClient, rememberSessionToken } from "@/lib/auth/client";
 
 export function AccountCard() {
   const session = authClient.useSession();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const user = session.data?.user;
 
-  if (session.isPending) return null;
+  // Session state differs between the server render and the first client paint.
+  // Wait until the browser has mounted so the login card doesn't hydrate twice.
+  if (!mounted || session.isPending) return null;
 
   if (user) {
     return (
@@ -15,7 +20,7 @@ export function AccountCard() {
         <p className="mt-1 font-semibold">{user.name}</p>
         <p className="text-sm text-muted-foreground">{user.email}</p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-          这个账号的衣橱单独保存。退出后会回到未登录时的那一份。
+          登录后的衣橱保存在服务器上，换一台设备登录还能看到。退出后回到这台设备上未登录的那一份。
         </p>
         <button
           type="button"

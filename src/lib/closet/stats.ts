@@ -9,7 +9,7 @@ export function wearStats(
     .map(([date]) => date)
     .sort();
   const last = dates[dates.length - 1] ?? null;
-  const from = last ?? taipeiDay(addedAt);
+  const from = last ?? chinaDay(addedAt);
   return { count: dates.length, last, idle: daySpan(from, today) };
 }
 
@@ -18,9 +18,9 @@ export function costPerWear(price: number, owned: boolean, count: number) {
   return Math.round(price / Math.max(count, 1));
 }
 
-function taipeiDay(time: number) {
+function chinaDay(time: number) {
   return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Taipei",
+    timeZone: "Asia/Shanghai",
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
